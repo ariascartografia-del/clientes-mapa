@@ -1,0 +1,10 @@
+{
+"type": "FeatureCollection",
+"name": "clientes",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "fid": 1, "empresa": "ARIAS Engenharia e Cartografia", "cidade": "Presidente Prudente", "estado": "SP", "contato": "Anderson", "telefone": 95286, "email": "arias.cartografia@gmail.com", "data_proposta": "2026-05-20", "valor": 5500.0, "status": "neg", "servico": "Assessoria e Laudo para o MD", "pdf_link": null, "observacoes": null }, "geometry": { "type": "Point", "coordinates": [ -51.390893363840156, -22.103763349550199 ] } },
+{ "type": "Feature", "properties": { "fid": 2, "empresa": "Planagro Topogrfia", "cidade": "Presidente Prudente", "estado": "SP", "contato": null, "telefone": null, "email": null, "data_proposta": null, "valor": 3000.0, "status": "won", "servico": "Assessoria e Laudo MD", "pdf_link": null, "observacoes": null }, "geometry": { "type": "Point", "coordinates": [ -51.399411808929962, -22.114177615815301 ] } },
+{ "type": "Feature", "properties": { "fid": 3, "empresa": "Ulisses Matarésio Arias", "cidade": "Auriflama", "estado": "SP", "contato": "Ulisses", "telefone": null, "email": null, "data_proposta": null, "valor": 3000.0, "status": "won", "servico": "Georreferenciamento", "pdf_link": null, "observacoes": null }, "geometry": { "type": "Point", "coordinates": [ -50.639234337717433, -20.709875426945555 ] } }
+]
+}
