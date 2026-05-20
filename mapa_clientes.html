@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Mapa de Clientes</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  :root {
+    --bg:       #0f1117;
+    --surface:  #181b24;
+    --surface2: #1f2333;
+    --border:   rgba(255,255,255,0.08);
+    --text:     #e8eaf0;
+    --muted:    #7c8099;
+    --accent:   #1dbe8a;
+    --accent2:  #1a9e75;
+    --won:      #1dbe8a;
+    --sent:     #4b9cf5;
+    --neg:      #f5a623;
+    --lost:     #e05252;
+    --won-bg:   rgba(29,190,138,0.12);
+    --sent-bg:  rgba(75,156,245,0.12);
+    --neg-bg:   rgba(245,166,35,0.12);
+    --lost-bg:  rgba(224,82,82,0.12);
+    --radius:   10px;
+    --shadow:   0 8px 32px rgba(0,0,0,0.4);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── HEADER ── */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 20px;
+    height: 56px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    z-index: 1000;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: -0.3px;
+    color: var(--text);
+  }
+  .logo-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+  }
+  .header-spacer { flex: 1; }
+  .count-pill {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 3px 10px;
+  }
+
+  /* ── FILTER BAR ── */
+  .filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+  .filter-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    margin-right: 2px;
+  }
+  .chip {
+    padding: 4px 11px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all .15s;
+    user-select: none;
+    color: var(--muted);
+    background: var(--surface2);
+    border-color: var(--border);
+  }
+  .chip:hover { color: var(--text); border-color: rgba(255,255,255,0.18); }
+  .chip.active { color: var(--text); border-color: rgba(255,255,255,0.25); background: rgba(255,255,255,0.06); }
+  .chip.won.active  { color: var(--won);  border-color: var(--won);  background: var(--won-bg); }
+  .chip.sent.active { color: var(--sent); border-color: var(--sent); background: var(--sent-bg); }
+  .chip.neg.active  { color: var(--neg);  border-color: var(--neg);  background: var(--neg-bg); }
+  .chip.lost.active { color: var(--lost); border-color: var(--lost); background: var(--lost-bg); }
+  .sep { width: 1px; height: 16px; background: var(--border); margin: 0 4px; }
+  .chip-clear {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--muted);
+    background: none;
+    border: 1px solid var(--border);
+    transition: all .15s;
+  }
+  .chip-clear:hover { color: var(--text); }
+
+  /* ── LAYOUT ── */
+  .main { display: flex; flex: 1; overflow: hidden; }
+  #map { flex: 1; }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: 320px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .sidebar-header {
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .sidebar-title {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .6px;
+  }
+  .sidebar-list {
+    overflow-y: auto;
+    flex: 1;
+    padding: 8px 0;
+  }
+  .sidebar-list::-webkit-scrollbar { width: 4px; }
+  .sidebar-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* ── CLIENTE ITEM ── */
+  .client-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 16px;
+    cursor: pointer;
+    transition: background .12s;
+    border-left: 2px solid transparent;
+  }
+  .client-item:hover { background: var(--surface2); }
+  .client-item.active {
+    background: var(--surface2);
+    border-left-color: var(--accent);
+  }
+  .client-avatar {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600;
+    flex-shrink: 0;
+    background: rgba(29,190,138,0.15);
+    color: var(--accent);
+    letter-spacing: 0.5px;
+  }
+  .client-info { flex: 1; min-width: 0; }
+  .client-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .client-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .status-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .dot-won  { background: var(--won); }
+  .dot-sent { background: var(--sent); }
+  .dot-neg  { background: var(--neg); }
+  .dot-lost { background: var(--lost); }
+
+  /* ── STATS ── */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3,1fr);
+    gap: 0;
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .stat-box {
+    padding: 10px 12px;
+    text-align: center;
+    border-right: 1px solid var(--border);
+  }
+  .stat-box:last-child { border-right: none; }
+  .stat-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .stat-lbl {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 1px;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+  }
+
+  /* ── DETAIL PANEL ── */
+  .detail-panel {
+    position: absolute;
+    top: 0; right: 320px; bottom: 0;
+    width: 300px;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    z-index: 800;
+    transform: translateX(20px);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform .2s ease, opacity .2s ease;
+    overflow-y: auto;
+  }
+  .detail-panel.open {
+    transform: translateX(0);
+    opacity: 1;
+    pointer-events: all;
+  }
+  .dp-header {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .dp-avatar {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 600;
+    background: rgba(29,190,138,0.15);
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+  .dp-name { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.3; }
+  .dp-loc  { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .dp-close {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 0 0 0 8px;
+    line-height: 1;
+  }
+  .dp-close:hover { color: var(--text); }
+  .dp-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+  .dp-row { display: flex; gap: 8px; align-items: flex-start; }
+  .dp-lbl { font-size: 11px; color: var(--muted); min-width: 90px; padding-top: 1px; }
+  .dp-val { font-size: 13px; color: var(--text); font-weight: 500; flex: 1; }
+  .dp-divider { border: none; border-top: 1px solid var(--border); }
+  .dp-note {
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  .status-badge {
+    display: inline-flex;
+    padding: 2px 9px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .2px;
+  }
+  .badge-won  { color: var(--won);  background: var(--won-bg); }
+  .badge-sent { color: var(--sent); background: var(--sent-bg); }
+  .badge-neg  { color: var(--neg);  background: var(--neg-bg); }
+  .badge-lost { color: var(--lost); background: var(--lost-bg); }
+  .pdf-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--accent);
+    background: var(--won-bg);
+    border: 1px solid rgba(29,190,138,0.25);
+    text-decoration: none;
+    transition: background .12s;
+  }
+  .pdf-link:hover { background: rgba(29,190,138,0.2); }
+
+  /* ── EMPTY STATE ── */
+  .empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    gap: 8px;
+    color: var(--muted);
+    font-size: 13px;
+    text-align: center;
+    flex: 1;
+  }
+  .empty-icon { font-size: 28px; opacity: .4; margin-bottom: 4px; }
+
+  /* ── LEAFLET CUSTOMIZATIONS ── */
+  .leaflet-container { background: #1a1d2b !important; }
+  .leaflet-tile { filter: brightness(0.7) saturate(0.6) hue-rotate(180deg); }
+  .leaflet-control-zoom a {
+    background: var(--surface) !important;
+    color: var(--text) !important;
+    border-color: var(--border) !important;
+  }
+  .leaflet-control-attribution {
+    background: rgba(15,17,23,0.7) !important;
+    color: var(--muted) !important;
+    font-size: 10px !important;
+  }
+  .leaflet-control-attribution a { color: var(--muted) !important; }
+  .custom-tooltip {
+    background: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+    color: var(--text) !important;
+    border-radius: 6px !important;
+    padding: 5px 9px !important;
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 12px !important;
+    box-shadow: var(--shadow) !important;
+  }
+  .custom-tooltip::before { display: none !important; }
+
+  /* ── UPLOAD HINT ── */
+  .upload-hint {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 900;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 18px;
+    font-size: 12px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: var(--shadow);
+    pointer-events: none;
+  }
+  .upload-hint b { color: var(--text); font-weight: 500; }
+
+  @media (max-width: 768px) {
+    .sidebar { width: 100%; position: absolute; bottom: 0; left: 0; right: 0; height: 220px; border-left: none; border-top: 1px solid var(--border); z-index: 900; }
+    .detail-panel { right: 0; width: 100%; border-left: none; border-right: none; }
+    .main { position: relative; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-dot"></div>
+    Mapa de Clientes
+  </div>
+  <div class="header-spacer"></div>
+  <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:5px 12px;">
+    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+    Carregar GeoJSON
+    <input type="file" id="geojson-input" accept=".geojson,.json" style="display:none" onchange="loadGeoJSON(this)"/>
+  </label>
+  <div class="count-pill" id="count-pill">0 clientes</div>
+</header>
+
+<div class="filter-bar">
+  <span class="filter-label">Status</span>
+  <div class="chip active" id="chip-all"    onclick="setStatus('all')">Todos</div>
+  <div class="chip won"  id="chip-won"    onclick="setStatus('won')">Ganha</div>
+  <div class="chip sent" id="chip-sent"   onclick="setStatus('sent')">Enviada</div>
+  <div class="chip neg"  id="chip-neg"    onclick="setStatus('neg')">Negociação</div>
+  <div class="chip lost" id="chip-lost"   onclick="setStatus('lost')">Perdida</div>
+  <div class="sep"></div>
+  <span class="filter-label">Serviço</span>
+  <div id="servico-chips" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+  <button class="chip-clear" onclick="clearFilters()">✕ Limpar</button>
+</div>
+
+<div class="main">
+  <div id="map"></div>
+
+  <div class="detail-panel" id="detail-panel">
+    <!-- preenchido por JS -->
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-title">Clientes</div>
+    </div>
+    <div class="sidebar-list" id="sidebar-list">
+      <div class="empty">
+        <div class="empty-icon">📍</div>
+        Carregue um arquivo GeoJSON para exibir os clientes
+      </div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-box"><div class="stat-val" id="s-total">0</div><div class="stat-lbl">Total</div></div>
+      <div class="stat-box"><div class="stat-val" id="s-won">0</div><div class="stat-lbl">Ganhas</div></div>
+      <div class="stat-box"><div class="stat-val" id="s-valor">R$0</div><div class="stat-lbl">Valor</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="upload-hint" id="upload-hint">
+  <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+  No QGIS: <b>Exportar camada → Salvar como → GeoJSON (EPSG:4326)</b> → carregue aqui
+</div>
+
+<script>
+// ── dados de exemplo para demo ──
+const DEMO_GEOJSON = {
+  type: "FeatureCollection",
+  features: [
+    { type:"Feature", geometry:{type:"Point",coordinates:[-47.8103,-21.1775]}, properties:{empresa:"Agro São Paulo",cidade:"Ribeirão Preto",estado:"SP",contato:"Carlos Mendes",telefone:"(16) 99234-5678",email:"carlos@agrosp.com.br",data_proposta:"2024-11-10",valor:45000,status:"won",servico:"Assessoria + Laudo RGB",pdf_link:"",observacoes:"Cliente interessado em expansão."} },
+    { type:"Feature", geometry:{type:"Point",coordinates:[-34.877,-8.0476]},   properties:{empresa:"Tech Recife",cidade:"Recife",estado:"PE",contato:"Ana Lima",telefone:"(81) 98765-4321",email:"ana@techrecife.com",data_proposta:"2024-12-05",valor:28000,status:"sent",servico:"Laudo LiDAR",pdf_link:"",observacoes:"Aguardando retorno."} },
+    { type:"Feature", geometry:{type:"Point",coordinates:[-51.2177,-30.0346]}, properties:{empresa:"Construções Sul",cidade:"Porto Alegre",estado:"RS",contato:"Marcos Oliveira",telefone:"(51) 97654-3210",email:"marcos@construcaosul.com",data_proposta:"2024-10-22",valor:92000,status:"neg",servico:"Assessoria",pdf_link:"",observacoes:"Negociando prazo."} },
+    { type:"Feature", geometry:{type:"Point",coordinates:[-38.5014,-12.9714]}, properties:{empresa:"Saúde Nordeste",cidade:"Salvador",estado:"BA",contato:"Fernanda Costa",telefone:"(71) 96543-2109",email:"fcosta@saudene.com",data_proposta:"2024-09-15",valor:67000,status:"won",servico:"Laudo RGB",pdf_link:"",observacoes:"Contrato assinado."} },
+    { type:"Feature", geometry:{type:"Point",coordinates:[-49.2648,-16.6869]}, properties:{empresa:"Varejo Centro-Oeste",cidade:"Goiânia",estado:"GO",contato:"Roberto Alves",telefone:"(62) 95432-1098",email:"roberto@varejoco.com",data_proposta:"2025-01-08",valor:19000,status:"lost",servico:"Laudo RGB e LiDAR",pdf_link:"",observacoes:"Optou por concorrente."} },
+    { type:"Feature", geometry:{type:"Point",coordinates:[-51.3889,-22.1256]}, properties:{empresa:"Cana Oeste",cidade:"Presidente Prudente",estado:"SP",contato:"Luiza Ferreira",telefone:"(18) 98815-3529",email:"luiza@canaoeste.com.br",data_proposta:"2025-02-20",valor:38000,status:"neg",servico:"Assessoria + Laudo LiDAR",pdf_link:"",observacoes:"Reunião marcada para março."} },
+  ]
+};
+
+const STATUS_COLOR = { won:'#1dbe8a', sent:'#4b9cf5', neg:'#f5a623', lost:'#e05252' };
+const STATUS_LABEL = { won:'Ganha', sent:'Enviada', neg:'Em negociação', lost:'Perdida' };
+const BADGE_CLASS  = { won:'badge-won', sent:'badge-sent', neg:'badge-neg', lost:'badge-lost' };
+const DOT_CLASS    = { won:'dot-won', sent:'dot-sent', neg:'dot-neg', lost:'dot-lost' };
+
+let map, allFeatures = [], markers = [], activeStatus = 'all', activeServico = 'all', activeId = null;
+
+// ── init mapa ──
+map = L.map('map', { zoomControl: true }).setView([-15.78, -47.93], 4);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap contributors',
+  maxZoom: 18
+}).addTo(map);
+
+// carrega demo
+loadFeatures(DEMO_GEOJSON);
+document.getElementById('upload-hint').style.display = 'flex';
+
+function loadGeoJSON(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const geojson = JSON.parse(e.target.result);
+      loadFeatures(geojson);
+      document.getElementById('upload-hint').style.display = 'none';
+    } catch(err) {
+      alert('Arquivo GeoJSON inválido. Verifique o formato.');
+    }
+  };
+  reader.readAsText(file);
+  input.value = '';
+}
+
+function loadFeatures(geojson) {
+  allFeatures = (geojson.features || []).filter(f => f.geometry && f.geometry.type === 'Point');
+  buildServicoChips();
+  render();
+  if (allFeatures.length > 0) fitBounds();
+}
+
+function fitBounds() {
+  const coords = allFeatures.map(f => [f.geometry.coordinates[1], f.geometry.coordinates[0]]);
+  if (coords.length === 1) { map.setView(coords[0], 10); return; }
+  map.fitBounds(L.latLngBounds(coords), { padding: [40, 40] });
+}
+
+function buildServicoChips() {
+  const servicos = [...new Set(allFeatures.map(f => f.properties.servico).filter(Boolean))].sort();
+  const container = document.getElementById('servico-chips');
+  container.innerHTML = servicos.map(s =>
+    `<div class="chip ${activeServico===s?'active':''}" onclick="setServico('${s.replace(/'/g,"\\'")}')">${s}</div>`
+  ).join('');
+}
+
+function setStatus(v) {
+  activeStatus = v;
+  ['all','won','sent','neg','lost'].forEach(s => {
+    const el = document.getElementById('chip-'+s);
+    el.className = 'chip' + (s !== 'all' && s !== 'all' ? ' '+s : '') + (activeStatus === s ? ' active' : '');
+  });
+  render();
+}
+
+function setServico(v) {
+  activeServico = activeServico === v ? 'all' : v;
+  buildServicoChips();
+  render();
+}
+
+function clearFilters() {
+  activeStatus = 'all';
+  activeServico = 'all';
+  ['all','won','sent','neg','lost'].forEach(s => {
+    document.getElementById('chip-'+s).className = 'chip' + (s !== 'all' ? ' '+s : '') + (s === 'all' ? ' active' : '');
+  });
+  buildServicoChips();
+  render();
+}
+
+function filtered() {
+  return allFeatures.filter(f => {
+    const p = f.properties;
+    const okStatus  = activeStatus  === 'all' || p.status  === activeStatus;
+    const okServico = activeServico === 'all' || p.servico === activeServico;
+    return okStatus && okServico;
+  });
+}
+
+function makeIcon(status) {
+  const c = STATUS_COLOR[status] || '#888';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36">
+    <filter id="sh"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="${c}" flood-opacity="0.5"/></filter>
+    <path filter="url(#sh)" d="M14 0C6.27 0 0 6.27 0 14c0 9.33 14 22 14 22S28 23.33 28 14C28 6.27 21.73 0 14 0z" fill="${c}"/>
+    <circle cx="14" cy="14" r="6" fill="rgba(255,255,255,0.9)"/>
+  </svg>`;
+  return L.divIcon({
+    html: `<div style="width:28px;height:36px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.4))">${svg}</div>`,
+    iconSize: [28, 36], iconAnchor: [14, 36], popupAnchor: [0, -36], className: ''
+  });
+}
+
+function render() {
+  markers.forEach(m => map.removeLayer(m));
+  markers = [];
+  const fc = filtered();
+
+  fc.forEach((f, i) => {
+    const p = f.properties;
+    const [lng, lat] = f.geometry.coordinates;
+    const m = L.marker([lat, lng], { icon: makeIcon(p.status) });
+    m.bindTooltip(
+      `<div style="font-family:'DM Sans',sans-serif"><b>${p.empresa||'—'}</b><br><span style="color:#7c8099">${p.cidade||''}${p.estado?', '+p.estado:''}</span></div>`,
+      { className: 'custom-tooltip', direction: 'top', offset: [0, -4] }
+    );
+    m.on('click', () => openDetail(f));
+    m.addTo(map);
+    markers.push(m);
+  });
+
+  // sidebar
+  const list = document.getElementById('sidebar-list');
+  if (fc.length === 0) {
+    list.innerHTML = `<div class="empty"><div class="empty-icon">🔍</div>Nenhum cliente neste filtro</div>`;
+  } else {
+    list.innerHTML = fc.map(f => {
+      const p = f.properties;
+      const ini = initials(p.empresa||'?');
+      const id = featureId(f);
+      return `<div class="client-item ${activeId===id?'active':''}" id="item-${id}" onclick="openDetail(${JSON.stringify(f).replace(/"/g,'&quot;')})">
+        <div class="client-avatar">${ini}</div>
+        <div class="client-info">
+          <div class="client-name">${p.empresa||'—'}</div>
+          <div class="client-sub">${p.cidade||''}${p.estado?', '+p.estado:''} · ${p.servico||'—'}</div>
+        </div>
+        <div class="status-dot ${DOT_CLASS[p.status]||'dot-sent'}"></div>
+      </div>`;
+    }).join('');
+  }
+
+  // stats
+  const total = fc.length;
+  const won   = fc.filter(f => f.properties.status === 'won').length;
+  const valor = fc.reduce((a, f) => a + (parseFloat(f.properties.valor) || 0), 0);
+  document.getElementById('s-total').textContent = total;
+  document.getElementById('s-won').textContent   = won;
+  document.getElementById('s-valor').textContent = valor >= 1000
+    ? 'R$' + (valor/1000).toFixed(0) + 'k'
+    : 'R$' + valor.toFixed(0);
+  document.getElementById('count-pill').textContent = total + ' cliente' + (total !== 1 ? 's' : '');
+}
+
+function featureId(f) {
+  const p = f.properties;
+  return (p.empresa||'') + '_' + (f.geometry.coordinates||[]).join('_');
+}
+
+function initials(name) {
+  return name.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+}
+
+function fmtValor(n) {
+  if (!n) return '—';
+  return 'R$ ' + Number(n).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+}
+
+function fmtData(s) {
+  if (!s) return '—';
+  const d = new Date(s + 'T00:00:00');
+  return isNaN(d) ? s : d.toLocaleDateString('pt-BR');
+}
+
+function openDetail(f) {
+  const p = f.properties;
+  const id = featureId(f);
+  activeId = id;
+
+  // highlight sidebar
+  document.querySelectorAll('.client-item').forEach(el => el.classList.remove('active'));
+  const item = document.getElementById('item-' + id);
+  if (item) { item.classList.add('active'); item.scrollIntoView({ block: 'nearest' }); }
+
+  // fly to marker
+  const [lng, lat] = f.geometry.coordinates;
+  map.flyTo([lat, lng], Math.max(map.getZoom(), 10), { duration: 0.8 });
+
+  const panel = document.getElementById('detail-panel');
+  const bc = BADGE_CLASS[p.status] || 'badge-sent';
+  const sl = STATUS_LABEL[p.status] || p.status;
+  panel.innerHTML = `
+    <div class="dp-header">
+      <div class="dp-avatar">${initials(p.empresa||'?')}</div>
+      <div style="flex:1;min-width:0">
+        <div class="dp-name">${p.empresa||'—'}</div>
+        <div class="dp-loc">📍 ${p.cidade||''}${p.estado?', '+p.estado:''}</div>
+      </div>
+      <button class="dp-close" onclick="closeDetail()">✕</button>
+    </div>
+    <div class="dp-body">
+      <div class="dp-row">
+        <span class="dp-lbl">Status</span>
+        <span class="status-badge ${bc}">${sl}</span>
+      </div>
+      ${p.servico ? `<div class="dp-row"><span class="dp-lbl">Serviço</span><span class="dp-val">${p.servico}</span></div>` : ''}
+      ${p.data_proposta ? `<div class="dp-row"><span class="dp-lbl">Data proposta</span><span class="dp-val">${fmtData(p.data_proposta)}</span></div>` : ''}
+      ${p.valor ? `<div class="dp-row"><span class="dp-lbl">Valor</span><span class="dp-val">${fmtValor(p.valor)}</span></div>` : ''}
+      <hr class="dp-divider"/>
+      ${p.contato ? `<div class="dp-row"><span class="dp-lbl">Contato</span><span class="dp-val">${p.contato}</span></div>` : ''}
+      ${p.telefone ? `<div class="dp-row"><span class="dp-lbl">Telefone</span><span class="dp-val" style="font-family:'DM Mono',monospace;font-size:12px">${p.telefone}</span></div>` : ''}
+      ${p.email ? `<div class="dp-row"><span class="dp-lbl">Email</span><span class="dp-val" style="color:var(--sent);font-size:12px">${p.email}</span></div>` : ''}
+      ${p.pdf_link ? `<hr class="dp-divider"/><div class="dp-row"><span class="dp-lbl">Proposta</span><a class="pdf-link" href="${p.pdf_link}" target="_blank">↗ Abrir PDF</a></div>` : ''}
+      ${p.observacoes ? `<hr class="dp-divider"/><div class="dp-note">${p.observacoes}</div>` : ''}
+    </div>`;
+  panel.classList.add('open');
+}
+
+function closeDetail() {
+  document.getElementById('detail-panel').classList.remove('open');
+  document.querySelectorAll('.client-item').forEach(el => el.classList.remove('active'));
+  activeId = null;
+}
+
+map.on('click', e => {
+  if (!e.originalEvent.target.closest('.client-item')) closeDetail();
+});
+</script>
+</body>
+</html>
