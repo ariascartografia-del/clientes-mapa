@@ -210,8 +210,12 @@ header{display:flex;align-items:center;gap:10px;padding:0 18px;height:52px;backg
   <header>
     <div class="logo"><div class="logo-dot"></div>Mapa de Clientes</div>
     <div style="display:flex;gap:6px;margin-left:12px">
-      <button class="tab-btn active" id="tab-mapa"    onclick="showView('mapa')">🗺 Mapa</button>
-      <button class="tab-btn"        id="tab-projetos" onclick="showView('projetos')">📋 Projetos</button>
+      <button class="tab-btn active" id="tab-mapa"       onclick="showView('mapa')">🗺 Mapa</button>
+      <button class="tab-btn"        id="tab-orcamentos" onclick="showView('orcamentos')">📑 Orçamentos</button>
+      <button class="tab-btn"        id="tab-md"         onclick="showView('md')">🛡 Ministério da Defesa</button>
+      <button class="tab-btn"        id="tab-geo"        onclick="showView('geo')">🌐 Georreferenciamento</button>
+      <button class="tab-btn"        id="tab-topo"       onclick="showView('topo')">📐 Topografia</button>
+      <button class="tab-btn"        id="tab-outros"     onclick="showView('outros')">⋯ Outros</button>
     </div>
     <div class="hspace"></div>
     <div class="count-pill" id="count-pill">carregando…</div>
@@ -219,14 +223,14 @@ header{display:flex;align-items:center;gap:10px;padding:0 18px;height:52px;backg
 
   <!-- FILTROS (só no mapa) -->
   <div class="filter-bar" id="filter-bar">
-    <span class="flabel">Status</span>
-    <div class="chip active" id="chip-all"  onclick="setStatus('all')">Todos</div>
+    <span class="flabel">Orçamentos</span>
+    <div class="chip active" id="chip-all"  onclick="clearFilters()">✕</div>
     <div class="chip won"    id="chip-won"  onclick="setStatus('won')">Ganha</div>
     <div class="chip sent"   id="chip-sent" onclick="setStatus('sent')">Enviada</div>
     <div class="chip neg"    id="chip-neg"  onclick="setStatus('neg')">Negociação</div>
     <div class="chip lost"   id="chip-lost" onclick="setStatus('lost')">Perdida</div>
     <div class="fsep"></div>
-    <span class="flabel">Serviço</span>
+    <span class="flabel">Serviços</span>
     <div id="servico-chips" style="display:flex;gap:5px;flex-wrap:wrap"></div>
     <button class="chip-clear" onclick="clearFilters()">✕</button>
   </div>
@@ -274,7 +278,7 @@ header{display:flex;align-items:center;gap:10px;padding:0 18px;height:52px;backg
 const GEOJSON_URL = 'https://raw.githubusercontent.com/ariascartografia-del/clientes-mapa/main/clientes.geojson';
 const PROJECTS_KEY = 'ariascartografia_projetos_v1';
 
-// ── Etapas do projeto ──
+// ── Etapas do projeto (padrão e por categoria) ──
 const ETAPAS = [
   { id:'cadastro',       nome:'Cadastro inicial',           cor:'#7c8099' },
   { id:'aguardando_doc', nome:'Aguardando documentos',      cor:'#f5a623' },
@@ -285,6 +289,58 @@ const ETAPAS = [
   { id:'portaria',       nome:'Publicação em portaria',     cor:'#e05252' },
   { id:'finalizado',     nome:'Finalizado',                 cor:'#1dbe8a' },
 ];
+
+const ETAPAS_MD = [
+  {id:'cadastro', nome:'Cadastro inicial', cor:'#7c8099'},
+  {id:'documentacao', nome:'Documentação', cor:'#f5a623'},
+  {id:'laudo_calib', nome:'Laudo de calibração', cor:'#9b6dff'},
+  {id:'analise_md', nome:'Análise MD', cor:'#4b9cf5'},
+  {id:'apresentacao', nome:'Apres. Institucional', cor:'#1dbe8a'},
+  {id:'publicacao', nome:'Publicação', cor:'#e05252'},
+  {id:'finalizado', nome:'Finalizado', cor:'#1dbe8a'}
+];
+
+const ETAPAS_GEO = [
+  {id:'analise_doc', nome:'Análise documental', cor:'#7c8099'},
+  {id:'campo', nome:'Campo', cor:'#f5a623'},
+  {id:'geracao', nome:'Geração dos produtos', cor:'#4b9cf5'},
+  {id:'sigef', nome:'SIGEF', cor:'#9b6dff'},
+  {id:'assinaturas', nome:'Assinaturas', cor:'#f57542'},
+  {id:'cartorio', nome:'Cartório', cor:'#1dbe8a'},
+  {id:'finalizado', nome:'Finalizado', cor:'#1dbe8a'}
+];
+
+const ETAPAS_TOPO = [
+  {id:'planejamento', nome:'Planejamento', cor:'#7c8099'},
+  {id:'campo', nome:'Campo', cor:'#f5a623'},
+  {id:'geracao', nome:'Geração dos produtos', cor:'#4b9cf5'},
+  {id:'plotagem', nome:'Plotagem', cor:'#9b6dff'},
+  {id:'cartorio', nome:'Cartório', cor:'#f57542'},
+  {id:'finalizado', nome:'Finalizado', cor:'#1dbe8a'}
+];
+
+const ETAPAS_OUTROS = [
+  {id:'inicial', nome:'Inicial', cor:'#7c8099'},
+  {id:'andamento', nome:'Em andamento', cor:'#4b9cf5'},
+  {id:'finalizado', nome:'Finalizado', cor:'#1dbe8a'}
+];
+
+function mapServiceToCategory(servico){
+  if(!servico) return 'outros';
+  const s = servico.toLowerCase();
+  if(s.includes('minist')||s.includes('defesa')||s.includes('md')) return 'md';
+  if(s.includes('georre')||s.includes('sigef')||s.includes('georef')) return 'geo';
+  if(s.includes('topo')||s.includes('topograf')) return 'topo';
+  return 'outros';
+}
+
+function getEtapasForCategory(cat){
+  if(cat==='md') return ETAPAS_MD;
+  if(cat==='geo') return ETAPAS_GEO;
+  if(cat==='topo') return ETAPAS_TOPO;
+  if(cat==='outros') return ETAPAS_OUTROS;
+  return ETAPAS;
+}
 
 const STATUS_COLOR = {won:'#1dbe8a',sent:'#4b9cf5',neg:'#f5a623',lost:'#e05252'};
 const STATUS_LABEL = {won:'Ganha',sent:'Enviada',neg:'Em negociação',lost:'Perdida'};
@@ -341,10 +397,13 @@ function processGeoJSON(geojson){
 function showView(v){
   currentView=v;
   document.getElementById('map-view').style.display     = v==='mapa'?'flex':'none';
-  document.getElementById('projects-view').className    = 'projects-view'+(v==='projetos'?' active':'');
+  document.getElementById('projects-view').className    = 'projects-view'+(v!=='mapa'?' active':'');
   document.getElementById('filter-bar').style.display   = v==='mapa'?'flex':'none';
-  document.getElementById('tab-mapa').className         = 'tab-btn'+(v==='mapa'?' active':'');
-  document.getElementById('tab-projetos').className     = 'tab-btn'+(v==='projetos'?' active':'');
+  // tabs
+  ['mapa','orcamentos','md','geo','topo','outros'].forEach(k=>{
+    const el=document.getElementById('tab-'+(k==='mapa'? 'mapa': k));
+    if(!el) return; el.className = 'tab-btn'+(v===k? ' active':'');
+  });
   if(v==='mapa') setTimeout(()=>map.invalidateSize(),50);
 }
 
@@ -352,10 +411,18 @@ function showView(v){
 // MAPA
 // ════════════════════════
 function buildServicoChips(){
-  const servicos=[...new Set(allFeatures.map(f=>f.properties.servico).filter(Boolean))].sort();
-  document.getElementById('servico-chips').innerHTML = servicos.map(s=>
-    `<div class="chip ${activeServico===s?'active':''}" onclick="setServico('${esc(s)}')">${s}</div>`
-  ).join('');
+  const cats = [
+    {id:'md', label:'Ministério da Defesa'},
+    {id:'geo', label:'Georreferenciamento'},
+    {id:'topo', label:'Topografia'},
+    {id:'outros', label:'Outros'},
+  ];
+  const container = document.getElementById('servico-chips'); container.innerHTML='';
+  cats.forEach(c=>{
+    const d = document.createElement('div'); d.className='chip'+(activeServico===c.id?' active':''); d.textContent = c.label;
+    d.addEventListener('click', ()=>{ setServico(c.id); });
+    container.appendChild(d);
+  });
 }
 
 function setStatus(v){
@@ -374,7 +441,8 @@ function clearFilters(){ activeStatus='all'; activeServico='all'; setStatus('all
 function filtered(){
   return allFeatures.filter(f=>{
     const p=f.properties;
-    return (activeStatus==='all'||p.status===activeStatus)&&(activeServico==='all'||p.servico===activeServico);
+    const cat = mapServiceToCategory(p.servico);
+    return (activeStatus==='all'||p.status===activeStatus)&&(activeServico==='all'||cat===activeServico);
   });
 }
 
@@ -400,10 +468,11 @@ function renderMap(){
     const p=f.properties;
     const [lng,lat]=f.geometry.coordinates;
     const proj=getProj(fid(f));
-    const etapa=ETAPAS.find(e=>e.id===proj.etapa);
+    const cat = mapServiceToCategory(p.servico);
+    const etapa = getEtapasForCategory(cat).find(e=>e.id===proj.etapa) || getEtapasForCategory(cat)[0];
     const m=L.marker([lat,lng],{icon:makeIcon(p.status, etapa?.cor)});
     m.bindTooltip(
-      `<div style="font-family:'DM Sans',sans-serif"><b>${p.empresa||'—'}</b><br><span style="color:#7c8099">${p.cidade||''}${p.estado?', '+p.estado:''}</span></div>`,
+      `<div style="font-family:'DM Sans',sans-serif"><b>${escapeHtml(p.empresa||'—')}</b><br><span style="color:#7c8099">${escapeHtml((p.cidade||'') + (p.estado?(', '+p.estado):''))}</span></div>`,
       {className:'ctt',direction:'top',offset:[0,-4]}
     );
     m.on('click',()=>openMapDetail(f));
@@ -415,17 +484,20 @@ function renderMap(){
   if(fc.length===0){
     list.innerHTML=`<div class="empty-state"><div class="empty-icon">🔍</div>Nenhum cliente neste filtro</div>`;
   } else {
-    list.innerHTML=fc.map(f=>{
+    list.innerHTML='';
+    fc.forEach(f=>{
       const p=f.properties; const id=fid(f);
-      return `<div class="client-item ${activeMapId===id?'active':''}" id="mi-${id}" onclick='openMapDetail(${JSON.stringify(f).replace(/'/g,"&#39;")})'>
-        <div class="ci-av">${ini(p.empresa||'?')}</div>
-        <div class="ci-info">
-          <div class="ci-name">${p.empresa||'—'}</div>
-          <div class="ci-sub">${p.cidade||''}${p.estado?', '+p.estado:''} · ${p.servico||'—'}</div>
-        </div>
-        <div class="sdot ${p.status||'sent'}"></div>
-      </div>`;
-    }).join('');
+      const item = document.createElement('div'); item.className = 'client-item'+(activeMapId===id?' active':''); item.id='mi-'+id;
+      const av = document.createElement('div'); av.className='ci-av'; av.textContent = ini(p.empresa||'?');
+      const info = document.createElement('div'); info.className='ci-info';
+      const name = document.createElement('div'); name.className='ci-name'; name.textContent = p.empresa||'—';
+      const sub = document.createElement('div'); sub.className='ci-sub'; sub.textContent = (p.cidade||'') + (p.estado?(', '+p.estado):'') + ' · ' + (p.servico||'—');
+      info.appendChild(name); info.appendChild(sub);
+      const sdot = document.createElement('div'); sdot.className = 'sdot '+(p.status||'sent');
+      item.appendChild(av); item.appendChild(info); item.appendChild(sdot);
+      item.addEventListener('click', ()=> openMapDetail(f));
+      list.appendChild(item);
+    });
   }
   const tot=fc.length, won=fc.filter(f=>f.properties.status==='won').length;
   const valor=fc.reduce((a,f)=>a+(parseFloat(f.properties.valor)||0),0);
@@ -444,37 +516,42 @@ function openMapDetail(f){
   map.flyTo([lat,lng],Math.max(map.getZoom(),10),{duration:.8});
   const bc=p.status||'sent';
   const proj=getProj(id);
-  const etapa=ETAPAS.find(e=>e.id===proj.etapa)||ETAPAS[0];
-  document.getElementById('detail-panel').innerHTML=`
-    <div class="dp-hd">
-      <div class="dp-av">${ini(p.empresa||'?')}</div>
-      <div style="flex:1;min-width:0">
-        <div class="dp-name">${p.empresa||'—'}</div>
-        <div class="dp-loc">📍 ${p.cidade||''}${p.estado?', '+p.estado:''}</div>
-      </div>
-      <button class="dp-x" onclick="closeDetail()">✕</button>
-    </div>
-    <div class="dp-body">
-      <div class="dp-row"><span class="dp-lbl">Status</span><span class="sbadge ${bc}">${STATUS_LABEL[p.status]||p.status}</span></div>
-      ${p.servico?`<div class="dp-row"><span class="dp-lbl">Serviço</span><span class="dp-val">${p.servico}</span></div>`:''}
-      ${p.data_proposta?`<div class="dp-row"><span class="dp-lbl">Data proposta</span><span class="dp-val">${fmtD(p.data_proposta)}</span></div>`:''}
-      ${p.valor?`<div class="dp-row"><span class="dp-lbl">Valor</span><span class="dp-val">${fmtV(p.valor)}</span></div>`:''}
-      ${p.contato?`<hr class="dp-div"/><div class="dp-row"><span class="dp-lbl">Contato</span><span class="dp-val">${p.contato}</span></div>`:''}
-      ${p.telefone?`<div class="dp-row"><span class="dp-lbl">Telefone</span><span class="dp-val" style="font-family:'DM Mono',monospace;font-size:11px">${p.telefone}</span></div>`:''}
-      ${p.email?`<div class="dp-row"><span class="dp-lbl">Email</span><span class="dp-val" style="color:var(--sent);font-size:11px">${p.email}</span></div>`:''}
-      ${p.pdf_link?`<hr class="dp-div"/><div class="dp-row"><span class="dp-lbl">Proposta</span><a class="pdf-a" href="${p.pdf_link}" target="_blank">↗ Abrir PDF</a></div>`:''}
-      ${p.observacoes?`<hr class="dp-div"/><div class="dp-note">${p.observacoes}</div>`:''}
-      <hr class="dp-div"/>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Etapa atual do projeto</div>
-      <div style="display:flex;align-items:center;gap:6px;padding:7px 9px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">
-        <div style="width:8px;height:8px;border-radius:50%;background:${etapa.cor};flex-shrink:0"></div>
-        <span style="font-size:12px;font-weight:500;color:var(--text)">${etapa.nome}</span>
-      </div>
-      <button class="proj-btn" onclick="showView('projetos');setTimeout(()=>openProjDetail('${id}'),100)">
-        📋 Gerenciar projeto
-      </button>
-    </div>`;
-  document.getElementById('detail-panel').classList.add('open');
+  const cat = mapServiceToCategory(p.servico);
+  const etapa = getEtapasForCategory(cat).find(e=>e.id===proj.etapa) || getEtapasForCategory(cat)[0];
+  const panel = document.getElementById('detail-panel');
+  panel.innerHTML='';
+  const hd = document.createElement('div'); hd.className='dp-hd';
+  const av = document.createElement('div'); av.className='dp-av'; av.textContent = ini(p.empresa||'?');
+  const main = document.createElement('div'); main.style.flex='1'; main.style.minWidth='0';
+  const name = document.createElement('div'); name.className='dp-name'; name.textContent = p.empresa||'—';
+  const loc = document.createElement('div'); loc.className='dp-loc'; loc.textContent = '📍 '+((p.cidade||'') + (p.estado?(', '+p.estado):''));
+  main.appendChild(name); main.appendChild(loc);
+  const btnX = document.createElement('button'); btnX.className='dp-x'; btnX.textContent='✕'; btnX.addEventListener('click', closeDetail);
+  hd.appendChild(av); hd.appendChild(main); hd.appendChild(btnX);
+  const body = document.createElement('div'); body.className='dp-body';
+  function addRow(label, value, isHtml){ if(value===null||value===undefined||value==='') return; const row=document.createElement('div'); row.className='dp-row'; const lbl=document.createElement('span'); lbl.className='dp-lbl'; lbl.textContent=label; const val=document.createElement('span'); val.className='dp-val'; if(isHtml){ val.innerHTML = value } else { val.textContent = value } row.appendChild(lbl); row.appendChild(val); body.appendChild(row); }
+  addRow('fid', id);
+  addRow('Empresa', p.empresa||'—');
+  if(p.CPF_CNPJ) addRow('CPF/CNPJ', p.CPF_CNPJ);
+  addRow('Cidade', p.cidade||'—'); addRow('Estado', p.estado||'—');
+  if(p.contato) addRow('Contato', p.contato);
+  if(p.telefone) addRow('Telefone', p.telefone);
+  if(p.email) addRow('Email', p.email);
+  if(p.data_proposta) addRow('Data proposta', fmtD(p.data_proposta));
+  if(p.valor) addRow('Valor', fmtV(p.valor));
+  // status + serviço
+  const statusRow=document.createElement('div'); statusRow.className='dp-row'; const slbl=document.createElement('span'); slbl.className='dp-lbl'; slbl.textContent='Status'; const sval=document.createElement('span'); sval.className='sbadge '+(p.status||'sent'); sval.textContent = STATUS_LABEL[p.status]||p.status; statusRow.appendChild(slbl); statusRow.appendChild(sval); body.appendChild(statusRow);
+  if(p.servico){ const srow=document.createElement('div'); srow.className='dp-row'; const sl=document.createElement('span'); sl.className='dp-lbl'; sl.textContent='Serviço'; const sv=document.createElement('span'); sv.className='dp-val'; sv.textContent = p.servico; srow.appendChild(sl); srow.appendChild(sv); body.appendChild(srow); }
+  if(p.pdf_link && isValidUrl(p.pdf_link)){
+    const hr=document.createElement('hr'); hr.className='dp-div'; body.appendChild(hr);
+    const prow=document.createElement('div'); prow.className='dp-row'; const plbl=document.createElement('span'); plbl.className='dp-lbl'; plbl.textContent='Proposta'; const alink=document.createElement('a'); alink.className='pdf-a'; alink.href=p.pdf_link; alink.target='_blank'; alink.textContent='↗ Abrir PDF'; prow.appendChild(plbl); prow.appendChild(alink); body.appendChild(prow);
+  }
+  if(p.observacoes){ const hr=document.createElement('hr'); hr.className='dp-div'; body.appendChild(hr); const note=document.createElement('div'); note.className='dp-note'; note.textContent = p.observacoes; body.appendChild(note); }
+  const hr2=document.createElement('hr'); hr2.className='dp-div'; body.appendChild(hr2);
+  const etWrap=document.createElement('div'); etWrap.style.fontSize='11px'; etWrap.style.color='var(--muted)'; etWrap.style.marginBottom='4px'; etWrap.textContent='Etapa atual do projeto'; body.appendChild(etWrap);
+  const etBox=document.createElement('div'); etBox.style.display='flex'; etBox.style.alignItems='center'; etBox.style.gap='6px'; etBox.style.padding='7px 9px'; etBox.style.background='var(--surface2)'; etBox.style.borderRadius='8px'; etBox.style.border='1px solid var(--border)'; const dot=document.createElement('div'); dot.style.width='8px'; dot.style.height='8px'; dot.style.borderRadius='50%'; dot.style.background=etapa.cor; dot.style.flexShrink='0'; const etName=document.createElement('span'); etName.style.fontSize='12px'; etName.style.fontWeight='500'; etName.style.color='var(--text)'; etName.textContent=etapa.nome; etBox.appendChild(dot); etBox.appendChild(etName); body.appendChild(etBox);
+  const manageBtn=document.createElement('button'); manageBtn.className='proj-btn'; manageBtn.textContent='📋 Gerenciar projeto'; manageBtn.addEventListener('click', ()=>{ showView((cat==='md'||cat==='geo'||cat==='topo'||cat==='outros')?cat:'orcamentos'); setTimeout(()=>openProjDetail(id),120); }); body.appendChild(manageBtn);
+  panel.appendChild(hd); panel.appendChild(body); panel.classList.add('open');
 }
 
 function closeDetail(){
@@ -494,58 +571,102 @@ function fitBounds(){
 // ════════════════════════
 function renderKanban(){
   const q=(document.getElementById('pv-search')?.value||'').toLowerCase();
-  const won=allFeatures.filter(f=>f.properties.status==='won');
-  const others=allFeatures.filter(f=>f.properties.status!=='won');
-  // Mostra todos, mas ganhos em destaque
-  const toShow=[...won,...others].filter(f=>{
-    if(!q) return true;
-    const p=f.properties;
-    return (p.empresa||'').toLowerCase().includes(q)||(p.cidade||'').toLowerCase().includes(q);
-  });
-
   const kanban=document.getElementById('kanban');
-  kanban.innerHTML=ETAPAS.map(etapa=>{
-    const cards=toShow.filter(f=>getProj(fid(f)).etapa===etapa.id);
-    const cardsHtml=cards.map(f=>{
-      const p=f.properties; const id=fid(f);
-      const proj=getProj(id);
-      const etapaIdx=ETAPAS.findIndex(e=>e.id===proj.etapa);
-      const isFirst=etapaIdx===0, isLast=etapaIdx===ETAPAS.length-1;
-      const dias=proj.historico?.length>0
-        ? Math.floor((Date.now()-new Date(proj.historico[0].data))/(1000*60*60*24))
-        : 0;
-      return `<div class="kard ${activeProjId===id?'active':''}" onclick="openProjDetail('${id}')" style="border-left-color:${p.status==='won'?'var(--won)':'var(--border)'}">
-        <div class="kard-name">${p.empresa||'—'}</div>
-        <div class="kard-meta">${p.cidade||''}${p.estado?', '+p.estado:''}<br>${p.contato||''}</div>
-        ${p.servico?`<div class="kard-service">${p.servico}</div>`:''}
-        <div class="kard-footer">
-          <span class="kard-days">${dias>0?dias+'d':''}</span>
-          <div class="kard-move-btns">
-            ${!isFirst?`<button class="move-btn" onclick="moveEtapa(event,'${id}',-1)" title="Etapa anterior">←</button>`:''}
-            ${!isLast?`<button class="move-btn" onclick="moveEtapa(event,'${id}',1)" title="Próxima etapa">→</button>`:''}
-          </div>
-        </div>
-      </div>`;
-    }).join('');
-    return `<div class="kol">
-      <div class="kol-head">
-        <div class="kol-color" style="background:${etapa.cor}"></div>
-        <span class="kol-name">${etapa.nome}</span>
-        <span class="kol-cnt">${cards.length}</span>
-      </div>
-      <div class="kol-cards">${cardsHtml||'<div style="height:40px"></div>'}</div>
-    </div>`;
-  }).join('');
+  const view = currentView;
+
+  // ORÇAMENTOS: mostra empresas com status que não são 'won'
+  if(view==='orcamentos'){
+    const cards = allFeatures.filter(f=>{
+      const p=f.properties; if(!p.status) return false;
+      if(p.status==='won') return false; // ganhos vão para gerenciamento
+      if(q){ const s=(p.empresa||'').toLowerCase()+' '+(p.cidade||'').toLowerCase(); if(!s.includes(q)) return false; }
+      return true;
+    });
+    // build DOM
+    kanban.innerHTML='';
+    const kol = document.createElement('div'); kol.className='kol';
+    const kh = document.createElement('div'); kh.className='kol-head';
+    const kcolor = document.createElement('div'); kcolor.className='kol-color'; kcolor.style.background='var(--accent)';
+    const kname = document.createElement('span'); kname.className='kol-name'; kname.textContent='Orçamentos';
+    const kcnt = document.createElement('span'); kcnt.className='kol-cnt'; kcnt.textContent=cards.length;
+    kh.appendChild(kcolor); kh.appendChild(kname); kh.appendChild(kcnt);
+    const kcards = document.createElement('div'); kcards.className='kol-cards';
+    if(cards.length===0){ const empty=document.createElement('div'); empty.style.height='40px'; kcards.appendChild(empty); }
+    cards.forEach(f=>{
+      const p=f.properties; const id=fid(f); const proj=getProj(id);
+      const dias=proj.historico?.length>0?Math.floor((Date.now()-new Date(proj.historico[0].data))/(1000*60*60*24)):0;
+      const card=document.createElement('div'); card.className='kard'+(activeProjId===id?' active':''); card.style.borderLeftColor = p.status==='won'?'var(--won)':'var(--border)';
+      card.addEventListener('click', ()=>openProjDetail(id));
+      const cname=document.createElement('div'); cname.className='kard-name'; cname.textContent = p.empresa||'—';
+      const cmeta=document.createElement('div'); cmeta.className='kard-meta'; cmeta.innerHTML = escapeHtml((p.cidade||'') + (p.estado?(', '+p.estado):'') ) + '<br>' + escapeHtml(p.contato||'');
+      card.appendChild(cname); card.appendChild(cmeta);
+      if(p.servico){ const cs = document.createElement('div'); cs.className='kard-service'; cs.textContent = p.servico; card.appendChild(cs); }
+      const cfooter = document.createElement('div'); cfooter.className='kard-footer'; const cdays = document.createElement('span'); cdays.className='kard-days'; cdays.textContent = dias>0?dias+'d':''; cfooter.appendChild(cdays); card.appendChild(cfooter);
+      kcards.appendChild(card);
+    });
+    kol.appendChild(kh); kol.appendChild(kcards); kanban.appendChild(kol);
+    return;
+  }
+
+  // Gerenciamento por categoria (md, geo, topo, outros)
+  if(['md','geo','topo','outros'].includes(view)){
+    const etapas = getEtapasForCategory(view);
+    const wonCards = allFeatures.filter(f=>{
+      const p=f.properties; if(!p.status) return false; if(p.status!=='won') return false;
+      if(mapServiceToCategory(p.servico)!==view) return false;
+      if(q){ const s=(p.empresa||'').toLowerCase()+' '+(p.cidade||'').toLowerCase(); if(!s.includes(q)) return false; }
+      return true;
+    });
+    // build DOM columns per etapa
+    kanban.innerHTML='';
+    etapas.forEach(etapa=>{
+      const col = document.createElement('div'); col.className='kol';
+      const kh = document.createElement('div'); kh.className='kol-head';
+      const kcolor = document.createElement('div'); kcolor.className='kol-color'; kcolor.style.background=etapa.cor;
+      const kname = document.createElement('span'); kname.className='kol-name'; kname.textContent=etapa.nome;
+      const cards = wonCards.filter(f=>getProj(fid(f)).etapa===etapa.id);
+      const kcnt = document.createElement('span'); kcnt.className='kol-cnt'; kcnt.textContent=cards.length;
+      kh.appendChild(kcolor); kh.appendChild(kname); kh.appendChild(kcnt);
+      const kcards = document.createElement('div'); kcards.className='kol-cards';
+      if(cards.length===0){ const empty=document.createElement('div'); empty.style.height='40px'; kcards.appendChild(empty); }
+      cards.forEach(f=>{
+        const p=f.properties; const id=fid(f); const proj=getProj(id);
+        const etapaIdx = etapas.findIndex(e=>e.id===proj.etapa);
+        const isFirst = etapaIdx===0, isLast = etapaIdx===etapas.length-1;
+        const dias=proj.historico?.length>0?Math.floor((Date.now()-new Date(proj.historico[0].data))/(1000*60*60*24)):0;
+        const card = document.createElement('div'); card.className='kard'+(activeProjId===id?' active':''); card.style.borderLeftColor='var(--won)';
+        card.addEventListener('click', ()=>openProjDetail(id));
+        const cname = document.createElement('div'); cname.className='kard-name'; cname.textContent = p.empresa||'—';
+        const cmeta = document.createElement('div'); cmeta.className='kard-meta'; cmeta.innerHTML = escapeHtml((p.cidade||'') + (p.estado?(', '+p.estado):'')) + '<br>' + escapeHtml(p.contato||'');
+        card.appendChild(cname); card.appendChild(cmeta);
+        if(p.servico){ const cs=document.createElement('div'); cs.className='kard-service'; cs.textContent = p.servico; card.appendChild(cs); }
+        const footer = document.createElement('div'); footer.className='kard-footer'; const days = document.createElement('span'); days.className='kard-days'; days.textContent = dias>0?dias+'d':''; footer.appendChild(days);
+        const moves = document.createElement('div'); moves.className='kard-move-btns';
+        if(!isFirst){ const b=document.createElement('button'); b.className='move-btn'; b.title='Etapa anterior'; b.textContent='←'; b.addEventListener('click', (e)=>moveEtapa(e,id,-1)); moves.appendChild(b); }
+        if(!isLast){ const b=document.createElement('button'); b.className='move-btn'; b.title='Próxima etapa'; b.textContent='→'; b.addEventListener('click', (e)=>moveEtapa(e,id,1)); moves.appendChild(b); }
+        footer.appendChild(moves); card.appendChild(footer);
+        kcards.appendChild(card);
+      });
+      col.appendChild(kh); col.appendChild(kcards); kanban.appendChild(col);
+    });
+    return;
+  }
+
+  // Default fallback
+  kanban.innerHTML = '<div class="empty-state">Selecione uma visão</div>';
 }
 
 function moveEtapa(e, id, dir){
   e.stopPropagation();
   const proj=getProj(id);
-  const idx=ETAPAS.findIndex(et=>et.id===proj.etapa);
-  const newIdx=Math.max(0,Math.min(ETAPAS.length-1,idx+dir));
+  const f = allFeatures.find(ff=>fid(ff)===id);
+  const cat = f?mapServiceToCategory(f.properties.servico):null;
+  const etapas = getEtapasForCategory(cat);
+  const idx = etapas.findIndex(et=>et.id===proj.etapa);
+  const newIdx = Math.max(0, Math.min(etapas.length-1, idx+dir));
   if(newIdx===idx) return;
-  proj.etapa=ETAPAS[newIdx].id;
-  proj.historico=proj.historico||[];
+  proj.etapa = etapas[newIdx].id;
+  proj.historico = proj.historico||[];
   proj.historico.push({etapa:proj.etapa,data:new Date().toISOString()});
   saveProjects();
   renderKanban();
@@ -558,9 +679,11 @@ function openProjDetail(id){
   if(!f) return;
   const p=f.properties;
   const proj=getProj(id);
-  const etapaAtualIdx=ETAPAS.findIndex(e=>e.id===proj.etapa);
+  const cat = mapServiceToCategory(p.servico);
+  const etapas = getEtapasForCategory(cat);
+  const etapaAtualIdx = etapas.findIndex(e=>e.id===proj.etapa);
 
-  const timeline=ETAPAS.map((et,i)=>{
+  const timeline = etapas.map((et,i)=>{
     const isDone=i<etapaAtualIdx;
     const isCurrent=i===etapaAtualIdx;
     const hist=proj.historico?.find(h=>h.etapa===et.id);
@@ -573,7 +696,7 @@ function openProjDetail(id){
         <div class="etapa-circle ${circleClass}">
           ${isDone?'<span class="checkmark">✓</span>':isCurrent?`<div style="width:6px;height:6px;border-radius:50%;background:var(--sent)"></div>`:''}
         </div>
-        ${i<ETAPAS.length-1?`<div class="etapa-connector ${connClass}"></div>`:''}
+        ${i<etapas.length-1?`<div class="etapa-connector ${connClass}"></div>`:''}
       </div>
       <div class="etapa-text">
         <div class="etapa-name ${nameClass}">${et.nome}</div>
@@ -604,7 +727,7 @@ function openProjDetail(id){
       <div class="pd-section">Alterar etapa</div>
       <div class="etapa-select-row">
         <select class="etapa-select" id="etapa-sel-${id}">
-          ${ETAPAS.map(et=>`<option value="${et.id}" ${proj.etapa===et.id?'selected':''}>${et.nome}</option>`).join('')}
+          ${etapas.map(et=>`<option value="${et.id}" ${proj.etapa===et.id?'selected':''}>${et.nome}</option>`).join('')}
         </select>
         <button class="etapa-save-btn" onclick="saveEtapa('${id}')">Salvar</button>
       </div>
@@ -645,7 +768,10 @@ function saveEtapa(id){
 
 function setEtapaDirectly(id, idx){
   const proj=getProj(id);
-  const novaEtapa=ETAPAS[idx].id;
+  const f = allFeatures.find(ff=>fid(ff)===id);
+  const cat = f?mapServiceToCategory(f.properties.servico):null;
+  const etapas = getEtapasForCategory(cat);
+  const novaEtapa = etapas[idx].id;
   if(proj.etapa===novaEtapa) return;
   proj.etapa=novaEtapa;
   proj.historico=proj.historico||[];
@@ -672,6 +798,13 @@ function ini(n){ return n.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).joi
 function esc(s){ return s.replace(/'/g,"\\'"); }
 function fmtV(n){ return n?'R$ '+Number(n).toLocaleString('pt-BR',{minimumFractionDigits:2}):'—'; }
 function fmtD(s){ if(!s) return '—'; try{ return new Date(s+'T00:00:00').toLocaleDateString('pt-BR'); }catch(e){ return s; } }
+
+// Segurança: escape para texto e validação de URLs
+function escapeHtml(str){
+  if(str===null||str===undefined) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function isValidUrl(u){ try{ const url=new URL(u); return url.protocol==='http:'||url.protocol==='https:' }catch(e){return false} }
 
 // ── Demo data (fallback quando sem internet) ──
 function getDemoGeoJSON(){
