@@ -9,700 +9,681 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
-  :root {
-    --bg:       #0f1117;
-    --surface:  #181b24;
-    --surface2: #1f2333;
-    --border:   rgba(255,255,255,0.08);
-    --text:     #e8eaf0;
-    --muted:    #7c8099;
-    --accent:   #1dbe8a;
-    --accent2:  #1a9e75;
-    --won:      #1dbe8a;
-    --sent:     #4b9cf5;
-    --neg:      #f5a623;
-    --lost:     #e05252;
-    --won-bg:   rgba(29,190,138,0.12);
-    --sent-bg:  rgba(75,156,245,0.12);
-    --neg-bg:   rgba(245,166,35,0.12);
-    --lost-bg:  rgba(224,82,82,0.12);
-    --radius:   10px;
-    --shadow:   0 8px 32px rgba(0,0,0,0.4);
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: 'DM Sans', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    height: 100vh;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-  }
+:root {
+  --bg:#0f1117; --surface:#181b24; --surface2:#1f2333; --surface3:#252840;
+  --border:rgba(255,255,255,0.08); --border2:rgba(255,255,255,0.13);
+  --text:#e8eaf0; --muted:#7c8099; --muted2:#9aa0b8;
+  --accent:#1dbe8a; --accent2:#1a9e75;
+  --won:#1dbe8a; --sent:#4b9cf5; --neg:#f5a623; --lost:#e05252;
+  --won-bg:rgba(29,190,138,0.13); --sent-bg:rgba(75,156,245,0.13);
+  --neg-bg:rgba(245,166,35,0.13); --lost-bg:rgba(224,82,82,0.13);
+  --radius:10px; --shadow:0 8px 32px rgba(0,0,0,0.45);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 
-  /* ── HEADER ── */
-  header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 0 20px;
-    height: 56px;
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
-    z-index: 1000;
-  }
-  .logo {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-weight: 600;
-    font-size: 15px;
-    letter-spacing: -0.3px;
-    color: var(--text);
-  }
-  .logo-dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: var(--accent);
-    box-shadow: 0 0 8px var(--accent);
-  }
-  .header-spacer { flex: 1; }
-  .count-pill {
-    font-family: 'DM Mono', monospace;
-    font-size: 12px;
-    color: var(--muted);
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 3px 10px;
-  }
+/* HEADER */
+header{display:flex;align-items:center;gap:10px;padding:0 18px;height:52px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;z-index:1000;position:relative}
+.logo{display:flex;align-items:center;gap:8px;font-weight:600;font-size:15px;letter-spacing:-.3px}
+.logo-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent)}
+.hspace{flex:1}
+.tab-btn{padding:5px 14px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:none;color:var(--muted);transition:all .15s}
+.tab-btn:hover{color:var(--text);border-color:var(--border2)}
+.tab-btn.active{background:var(--surface3);color:var(--text);border-color:var(--border2)}
+.count-pill{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:3px 10px}
 
-  /* ── FILTER BAR ── */
-  .filter-bar {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 20px;
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
-    flex-wrap: wrap;
-  }
-  .filter-label {
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: .6px;
-    margin-right: 2px;
-  }
-  .chip {
-    padding: 4px 11px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    border: 1px solid transparent;
-    transition: all .15s;
-    user-select: none;
-    color: var(--muted);
-    background: var(--surface2);
-    border-color: var(--border);
-  }
-  .chip:hover { color: var(--text); border-color: rgba(255,255,255,0.18); }
-  .chip.active { color: var(--text); border-color: rgba(255,255,255,0.25); background: rgba(255,255,255,0.06); }
-  .chip.won.active  { color: var(--won);  border-color: var(--won);  background: var(--won-bg); }
-  .chip.sent.active { color: var(--sent); border-color: var(--sent); background: var(--sent-bg); }
-  .chip.neg.active  { color: var(--neg);  border-color: var(--neg);  background: var(--neg-bg); }
-  .chip.lost.active { color: var(--lost); border-color: var(--lost); background: var(--lost-bg); }
-  .sep { width: 1px; height: 16px; background: var(--border); margin: 0 4px; }
-  .chip-clear {
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 12px;
-    cursor: pointer;
-    color: var(--muted);
-    background: none;
-    border: 1px solid var(--border);
-    transition: all .15s;
-  }
-  .chip-clear:hover { color: var(--text); }
+/* FILTER BAR */
+.filter-bar{display:flex;align-items:center;gap:6px;padding:7px 18px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap}
+.flabel{font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-right:2px}
+.chip{padding:3px 10px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--muted);transition:all .15s;user-select:none}
+.chip:hover{color:var(--text);border-color:var(--border2)}
+.chip.active{color:var(--text);border-color:rgba(255,255,255,0.22);background:rgba(255,255,255,0.06)}
+.chip.won.active{color:var(--won);border-color:var(--won);background:var(--won-bg)}
+.chip.sent.active{color:var(--sent);border-color:var(--sent);background:var(--sent-bg)}
+.chip.neg.active{color:var(--neg);border-color:var(--neg);background:var(--neg-bg)}
+.chip.lost.active{color:var(--lost);border-color:var(--lost);background:var(--lost-bg)}
+.fsep{width:1px;height:14px;background:var(--border);margin:0 3px}
+.chip-clear{padding:3px 9px;border-radius:20px;font-size:12px;cursor:pointer;color:var(--muted);background:none;border:1px solid var(--border);transition:all .15s}
+.chip-clear:hover{color:var(--text)}
 
-  /* ── LAYOUT ── */
-  .main { display: flex; flex: 1; overflow: hidden; }
-  #map { flex: 1; }
+/* MAIN LAYOUT */
+.page{display:flex;flex-direction:column;height:100vh}
+.main{display:flex;flex:1;overflow:hidden}
+#map{flex:1;min-width:0}
 
-  /* ── SIDEBAR ── */
-  .sidebar {
-    width: 320px;
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    background: var(--surface);
-    border-left: 1px solid var(--border);
-    overflow: hidden;
-  }
-  .sidebar-header {
-    padding: 14px 16px 10px;
-    border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
-  }
-  .sidebar-title {
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: .6px;
-  }
-  .sidebar-list {
-    overflow-y: auto;
-    flex: 1;
-    padding: 8px 0;
-  }
-  .sidebar-list::-webkit-scrollbar { width: 4px; }
-  .sidebar-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+/* SIDEBAR */
+.sidebar{width:310px;flex-shrink:0;display:flex;flex-direction:column;background:var(--surface);border-left:1px solid var(--border);overflow:hidden}
+.sb-head{padding:12px 15px 9px;border-bottom:1px solid var(--border);flex-shrink:0}
+.sb-title{font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.sb-list{overflow-y:auto;flex:1;padding:6px 0}
+.sb-list::-webkit-scrollbar{width:3px}
+.sb-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.client-item{display:flex;align-items:center;gap:9px;padding:8px 15px;cursor:pointer;transition:background .12s;border-left:2px solid transparent}
+.client-item:hover{background:var(--surface2)}
+.client-item.active{background:var(--surface2);border-left-color:var(--accent)}
+.ci-av{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;background:rgba(29,190,138,0.15);color:var(--accent);letter-spacing:.5px}
+.ci-info{flex:1;min-width:0}
+.ci-name{font-size:13px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ci-sub{font-size:11px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sdot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.sdot.won{background:var(--won)} .sdot.sent{background:var(--sent)} .sdot.neg{background:var(--neg)} .sdot.lost{background:var(--lost)}
 
-  /* ── CLIENTE ITEM ── */
-  .client-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 9px 16px;
-    cursor: pointer;
-    transition: background .12s;
-    border-left: 2px solid transparent;
-  }
-  .client-item:hover { background: var(--surface2); }
-  .client-item.active {
-    background: var(--surface2);
-    border-left-color: var(--accent);
-  }
-  .client-avatar {
-    width: 32px; height: 32px;
-    border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 11px; font-weight: 600;
-    flex-shrink: 0;
-    background: rgba(29,190,138,0.15);
-    color: var(--accent);
-    letter-spacing: 0.5px;
-  }
-  .client-info { flex: 1; min-width: 0; }
-  .client-name {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--text);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .client-sub {
-    font-size: 11px;
-    color: var(--muted);
-    margin-top: 1px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .status-dot {
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-  .dot-won  { background: var(--won); }
-  .dot-sent { background: var(--sent); }
-  .dot-neg  { background: var(--neg); }
-  .dot-lost { background: var(--lost); }
+/* STATS */
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--border);flex-shrink:0}
+.stat-box{padding:9px 10px;text-align:center;border-right:1px solid var(--border)}
+.stat-box:last-child{border-right:none}
+.stat-val{font-family:'DM Mono',monospace;font-size:15px;font-weight:500;color:var(--text)}
+.stat-lbl{font-size:10px;color:var(--muted);margin-top:1px;text-transform:uppercase;letter-spacing:.3px}
 
-  /* ── STATS ── */
-  .stats-row {
-    display: grid;
-    grid-template-columns: repeat(3,1fr);
-    gap: 0;
-    border-top: 1px solid var(--border);
-    flex-shrink: 0;
-  }
-  .stat-box {
-    padding: 10px 12px;
-    text-align: center;
-    border-right: 1px solid var(--border);
-  }
-  .stat-box:last-child { border-right: none; }
-  .stat-val {
-    font-family: 'DM Mono', monospace;
-    font-size: 16px;
-    font-weight: 500;
-    color: var(--text);
-  }
-  .stat-lbl {
-    font-size: 10px;
-    color: var(--muted);
-    margin-top: 1px;
-    text-transform: uppercase;
-    letter-spacing: .4px;
-  }
+/* DETAIL PANEL */
+.detail-panel{position:absolute;top:0;right:310px;bottom:0;width:300px;background:var(--surface);border-left:1px solid var(--border);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:800;transform:translateX(16px);opacity:0;pointer-events:none;transition:transform .2s ease,opacity .2s ease;overflow-y:auto}
+.detail-panel.open{transform:translateX(0);opacity:1;pointer-events:all}
+.dp-hd{padding:14px 15px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:9px}
+.dp-av{width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;background:rgba(29,190,138,0.15);color:var(--accent);flex-shrink:0}
+.dp-name{font-size:13px;font-weight:600;color:var(--text);line-height:1.3}
+.dp-loc{font-size:11px;color:var(--muted);margin-top:2px}
+.dp-x{margin-left:auto;background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:0 0 0 6px;line-height:1}
+.dp-x:hover{color:var(--text)}
+.dp-body{padding:13px 15px;display:flex;flex-direction:column;gap:9px}
+.dp-row{display:flex;gap:7px;align-items:flex-start}
+.dp-lbl{font-size:11px;color:var(--muted);min-width:88px;padding-top:1px;flex-shrink:0}
+.dp-val{font-size:12px;color:var(--text);font-weight:500;flex:1}
+.dp-div{border:none;border-top:1px solid var(--border)}
+.dp-note{background:var(--surface2);border-radius:8px;padding:8px 10px;font-size:12px;color:var(--muted);line-height:1.6}
+.sbadge{display:inline-flex;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.sbadge.won{color:var(--won);background:var(--won-bg)}
+.sbadge.sent{color:var(--sent);background:var(--sent-bg)}
+.sbadge.neg{color:var(--neg);background:var(--neg-bg)}
+.sbadge.lost{color:var(--lost);background:var(--lost-bg)}
+.pdf-a{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:500;color:var(--accent);background:var(--won-bg);border:1px solid rgba(29,190,138,0.22);text-decoration:none}
+.pdf-a:hover{background:rgba(29,190,138,0.22)}
 
-  /* ── DETAIL PANEL ── */
-  .detail-panel {
-    position: absolute;
-    top: 0; right: 320px; bottom: 0;
-    width: 300px;
-    background: var(--surface);
-    border-left: 1px solid var(--border);
-    border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    z-index: 800;
-    transform: translateX(20px);
-    opacity: 0;
-    pointer-events: none;
-    transition: transform .2s ease, opacity .2s ease;
-    overflow-y: auto;
-  }
-  .detail-panel.open {
-    transform: translateX(0);
-    opacity: 1;
-    pointer-events: all;
-  }
-  .dp-header {
-    padding: 16px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-  }
-  .dp-avatar {
-    width: 40px; height: 40px;
-    border-radius: 10px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 13px; font-weight: 600;
-    background: rgba(29,190,138,0.15);
-    color: var(--accent);
-    flex-shrink: 0;
-  }
-  .dp-name { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.3; }
-  .dp-loc  { font-size: 12px; color: var(--muted); margin-top: 3px; }
-  .dp-close {
-    margin-left: auto;
-    background: none;
-    border: none;
-    color: var(--muted);
-    font-size: 18px;
-    cursor: pointer;
-    padding: 0 0 0 8px;
-    line-height: 1;
-  }
-  .dp-close:hover { color: var(--text); }
-  .dp-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
-  .dp-row { display: flex; gap: 8px; align-items: flex-start; }
-  .dp-lbl { font-size: 11px; color: var(--muted); min-width: 90px; padding-top: 1px; }
-  .dp-val { font-size: 13px; color: var(--text); font-weight: 500; flex: 1; }
-  .dp-divider { border: none; border-top: 1px solid var(--border); }
-  .dp-note {
-    background: var(--surface2);
-    border-radius: 8px;
-    padding: 10px 12px;
-    font-size: 12px;
-    color: var(--muted);
-    line-height: 1.6;
-  }
-  .status-badge {
-    display: inline-flex;
-    padding: 2px 9px;
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: .2px;
-  }
-  .badge-won  { color: var(--won);  background: var(--won-bg); }
-  .badge-sent { color: var(--sent); background: var(--sent-bg); }
-  .badge-neg  { color: var(--neg);  background: var(--neg-bg); }
-  .badge-lost { color: var(--lost); background: var(--lost-bg); }
-  .pdf-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 4px 10px;
-    border-radius: 7px;
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--accent);
-    background: var(--won-bg);
-    border: 1px solid rgba(29,190,138,0.25);
-    text-decoration: none;
-    transition: background .12s;
-  }
-  .pdf-link:hover { background: rgba(29,190,138,0.2); }
+/* PROGRESSO DE PROJETO */
+.proj-btn{display:flex;align-items:center;justify-content:center;gap:6px;margin:4px 0 0;padding:7px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid rgba(29,190,138,0.3);background:rgba(29,190,138,0.08);color:var(--accent);transition:all .15s;width:100%}
+.proj-btn:hover{background:rgba(29,190,138,0.15)}
 
-  /* ── EMPTY STATE ── */
-  .empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 40px 20px;
-    gap: 8px;
-    color: var(--muted);
-    font-size: 13px;
-    text-align: center;
-    flex: 1;
-  }
-  .empty-icon { font-size: 28px; opacity: .4; margin-bottom: 4px; }
+/* ── PAINEL KANBAN / PROJETOS ── */
+.projects-view{display:none;flex-direction:column;flex:1;overflow:hidden}
+.projects-view.active{display:flex}
+.map-view{display:flex;flex:1;overflow:hidden}
 
-  /* ── LEAFLET CUSTOMIZATIONS ── */
-  .leaflet-container { background: #1a1d2b !important; }
-  .leaflet-tile { filter: brightness(0.7) saturate(0.6) hue-rotate(180deg); }
-  .leaflet-control-zoom a {
-    background: var(--surface) !important;
-    color: var(--text) !important;
-    border-color: var(--border) !important;
-  }
-  .leaflet-control-attribution {
-    background: rgba(15,17,23,0.7) !important;
-    color: var(--muted) !important;
-    font-size: 10px !important;
-  }
-  .leaflet-control-attribution a { color: var(--muted) !important; }
-  .custom-tooltip {
-    background: var(--surface) !important;
-    border: 1px solid var(--border) !important;
-    color: var(--text) !important;
-    border-radius: 6px !important;
-    padding: 5px 9px !important;
-    font-family: 'DM Sans', sans-serif !important;
-    font-size: 12px !important;
-    box-shadow: var(--shadow) !important;
-  }
-  .custom-tooltip::before { display: none !important; }
+.pv-header{padding:14px 20px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-shrink:0;background:var(--surface)}
+.pv-title{font-size:14px;font-weight:600;color:var(--text)}
+.pv-sub{font-size:12px;color:var(--muted)}
+.pv-hspace{flex:1}
+.pv-search{padding:5px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text);font-family:'DM Sans',sans-serif;outline:none;width:180px}
+.pv-search::placeholder{color:var(--muted)}
+.pv-search:focus{border-color:var(--border2)}
 
-  /* ── UPLOAD HINT ── */
-  .upload-hint {
-    position: absolute;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 900;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 10px 18px;
-    font-size: 12px;
-    color: var(--muted);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    box-shadow: var(--shadow);
-    pointer-events: none;
-  }
-  .upload-hint b { color: var(--text); font-weight: 500; }
+.kanban{display:flex;gap:12px;padding:14px 18px;overflow-x:auto;flex:1;align-items:flex-start}
+.kanban::-webkit-scrollbar{height:4px}
+.kanban::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
 
-  @media (max-width: 768px) {
-    .sidebar { width: 100%; position: absolute; bottom: 0; left: 0; right: 0; height: 220px; border-left: none; border-top: 1px solid var(--border); z-index: 900; }
-    .detail-panel { right: 0; width: 100%; border-left: none; border-right: none; }
-    .main { position: relative; }
-  }
+.kol{flex-shrink:0;width:220px;display:flex;flex-direction:column;gap:8px}
+.kol-head{display:flex;align-items:center;gap:7px;padding:7px 10px;border-radius:8px;background:var(--surface2);border:1px solid var(--border)}
+.kol-color{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.kol-name{font-size:12px;font-weight:600;color:var(--text);flex:1}
+.kol-cnt{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1px 7px}
+.kol-cards{display:flex;flex-direction:column;gap:7px;min-height:60px}
+
+.kard{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:10px 11px;cursor:pointer;transition:all .15s;border-left:3px solid transparent}
+.kard:hover{border-color:var(--border2);background:var(--surface3)}
+.kard.active{border-color:var(--accent);background:var(--surface3)}
+.kard-name{font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px}
+.kard-meta{font-size:11px;color:var(--muted);line-height:1.5}
+.kard-service{display:inline-flex;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:500;margin-top:5px;background:rgba(29,190,138,0.1);color:var(--accent);border:1px solid rgba(29,190,138,0.2)}
+.kard-footer{display:flex;align-items:center;justify-content:space-between;margin-top:7px}
+.kard-days{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)}
+.kard-move-btns{display:flex;gap:3px}
+.move-btn{background:none;border:1px solid var(--border);border-radius:4px;color:var(--muted);font-size:10px;cursor:pointer;padding:1px 5px;transition:all .15s;line-height:1.6}
+.move-btn:hover{color:var(--text);border-color:var(--border2)}
+
+/* DETAIL SIDE em projetos */
+.proj-detail{position:relative;width:280px;flex-shrink:0;background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;transform:translateX(10px);opacity:0;pointer-events:none;transition:transform .2s,opacity .2s}
+.proj-detail.open{transform:translateX(0);opacity:1;pointer-events:all}
+.pd-hd{padding:14px 15px;border-bottom:1px solid var(--border)}
+.pd-name{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px}
+.pd-loc{font-size:11px;color:var(--muted)}
+.pd-body{padding:13px 15px;display:flex;flex-direction:column;gap:10px}
+.pd-section{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:1px}
+.pd-row{display:flex;gap:7px;align-items:flex-start;font-size:12px}
+.pd-lbl{color:var(--muted);min-width:80px;flex-shrink:0}
+.pd-val{color:var(--text);font-weight:500}
+
+/* ETAPAS TIMELINE */
+.etapas-list{display:flex;flex-direction:column;gap:0}
+.etapa-row{display:flex;align-items:flex-start;gap:9px;padding:7px 0;cursor:pointer;transition:background .12s;border-radius:7px;padding:6px 8px;margin:0 -8px}
+.etapa-row:hover{background:var(--surface2)}
+.etapa-line{display:flex;flex-direction:column;align-items:center;flex-shrink:0;width:16px}
+.etapa-circle{width:16px;height:16px;border-radius:50%;border:2px solid var(--border2);background:var(--surface);display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
+.etapa-circle.done{background:var(--accent);border-color:var(--accent)}
+.etapa-circle.current{background:var(--surface);border-color:var(--sent);box-shadow:0 0 0 3px rgba(75,156,245,0.2)}
+.etapa-connector{width:2px;height:18px;background:var(--border);margin:1px 0}
+.etapa-connector.done{background:var(--accent)}
+.etapa-text{flex:1;min-width:0}
+.etapa-name{font-size:12px;font-weight:500;color:var(--muted);transition:color .15s}
+.etapa-name.done{color:var(--text)}
+.etapa-name.current{color:var(--sent)}
+.etapa-date{font-size:10px;color:var(--muted);margin-top:1px;font-family:'DM Mono',monospace}
+.checkmark{color:white;font-size:8px;line-height:1}
+
+/* ETAPA SELECT */
+.etapa-select-row{display:flex;align-items:center;gap:8px}
+.etapa-select{flex:1;padding:6px 9px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text);font-family:'DM Sans',sans-serif;cursor:pointer}
+.etapa-select:focus{outline:none;border-color:var(--border2)}
+.etapa-save-btn{padding:5px 12px;background:var(--accent2);border:none;border-radius:8px;color:white;font-size:12px;font-weight:500;cursor:pointer;transition:background .15s;white-space:nowrap}
+.etapa-save-btn:hover{background:var(--accent)}
+
+/* NOTAS */
+.notes-area{width:100%;padding:7px 9px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text);font-family:'DM Sans',sans-serif;resize:vertical;min-height:70px}
+.notes-area:focus{outline:none;border-color:var(--border2)}
+.notes-save-btn{padding:5px 12px;background:var(--surface3);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:12px;cursor:pointer;margin-top:5px;transition:background .15s}
+.notes-save-btn:hover{background:var(--surface2)}
+
+/* EMPTY / LOADING */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;gap:8px;color:var(--muted);font-size:13px;text-align:center;flex:1}
+.empty-icon{font-size:28px;opacity:.4;margin-bottom:4px}
+.loading-bar{position:fixed;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent),var(--sent));z-index:9999;animation:loading 1.2s ease-in-out infinite}
+@keyframes loading{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+
+/* LEAFLET */
+.leaflet-container{background:#1a1d2b !important}
+.leaflet-tile{filter:brightness(.68) saturate(.55) hue-rotate(180deg)}
+.leaflet-control-zoom a{background:var(--surface) !important;color:var(--text) !important;border-color:var(--border) !important}
+.leaflet-control-attribution{background:rgba(15,17,23,.7) !important;color:var(--muted) !important;font-size:10px !important}
+.leaflet-control-attribution a{color:var(--muted) !important}
+.ctt{background:var(--surface) !important;border:1px solid var(--border) !important;color:var(--text) !important;border-radius:6px !important;padding:5px 9px !important;font-family:'DM Sans',sans-serif !important;font-size:12px !important;box-shadow:var(--shadow) !important}
+.ctt::before{display:none !important}
+
+@media(max-width:768px){
+  .sidebar{width:100%;position:absolute;bottom:0;left:0;right:0;height:200px;border-left:none;border-top:1px solid var(--border);z-index:900}
+  .detail-panel{right:0;width:100%;border:none}
+  .kol{width:190px}
+  .proj-detail{width:100%;position:absolute;bottom:0;left:0;right:0;height:60%;border-left:none;border-top:1px solid var(--border);z-index:900}
+}
 </style>
 </head>
 <body>
+<div id="loading-bar" class="loading-bar"></div>
 
-<header>
-  <div class="logo">
-    <div class="logo-dot"></div>
-    Mapa de Clientes
-  </div>
-  <div class="header-spacer"></div>
-  <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:5px 12px;">
-    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-    Carregar GeoJSON
-    <input type="file" id="geojson-input" accept=".geojson,.json" style="display:none" onchange="loadGeoJSON(this)"/>
-  </label>
-  <div class="count-pill" id="count-pill">0 clientes</div>
-</header>
-
-<div class="filter-bar">
-  <span class="filter-label">Status</span>
-  <div class="chip active" id="chip-all"    onclick="setStatus('all')">Todos</div>
-  <div class="chip won"  id="chip-won"    onclick="setStatus('won')">Ganha</div>
-  <div class="chip sent" id="chip-sent"   onclick="setStatus('sent')">Enviada</div>
-  <div class="chip neg"  id="chip-neg"    onclick="setStatus('neg')">Negociação</div>
-  <div class="chip lost" id="chip-lost"   onclick="setStatus('lost')">Perdida</div>
-  <div class="sep"></div>
-  <span class="filter-label">Serviço</span>
-  <div id="servico-chips" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
-  <button class="chip-clear" onclick="clearFilters()">✕ Limpar</button>
-</div>
-
-<div class="main">
-  <div id="map"></div>
-
-  <div class="detail-panel" id="detail-panel">
-    <!-- preenchido por JS -->
-  </div>
-
-  <div class="sidebar">
-    <div class="sidebar-header">
-      <div class="sidebar-title">Clientes</div>
+<div class="page">
+  <header>
+    <div class="logo"><div class="logo-dot"></div>Mapa de Clientes</div>
+    <div style="display:flex;gap:6px;margin-left:12px">
+      <button class="tab-btn active" id="tab-mapa"    onclick="showView('mapa')">🗺 Mapa</button>
+      <button class="tab-btn"        id="tab-projetos" onclick="showView('projetos')">📋 Projetos</button>
     </div>
-    <div class="sidebar-list" id="sidebar-list">
-      <div class="empty">
-        <div class="empty-icon">📍</div>
-        Carregue um arquivo GeoJSON para exibir os clientes
+    <div class="hspace"></div>
+    <div class="count-pill" id="count-pill">carregando…</div>
+  </header>
+
+  <!-- FILTROS (só no mapa) -->
+  <div class="filter-bar" id="filter-bar">
+    <span class="flabel">Status</span>
+    <div class="chip active" id="chip-all"  onclick="setStatus('all')">Todos</div>
+    <div class="chip won"    id="chip-won"  onclick="setStatus('won')">Ganha</div>
+    <div class="chip sent"   id="chip-sent" onclick="setStatus('sent')">Enviada</div>
+    <div class="chip neg"    id="chip-neg"  onclick="setStatus('neg')">Negociação</div>
+    <div class="chip lost"   id="chip-lost" onclick="setStatus('lost')">Perdida</div>
+    <div class="fsep"></div>
+    <span class="flabel">Serviço</span>
+    <div id="servico-chips" style="display:flex;gap:5px;flex-wrap:wrap"></div>
+    <button class="chip-clear" onclick="clearFilters()">✕</button>
+  </div>
+
+  <!-- MAPA VIEW -->
+  <div class="map-view" id="map-view">
+    <div id="map"></div>
+
+    <div class="detail-panel" id="detail-panel"><!-- JS --></div>
+
+    <div class="sidebar">
+      <div class="sb-head"><div class="sb-title">Clientes</div></div>
+      <div class="sb-list" id="sb-list">
+        <div class="empty-state"><div class="empty-icon">📍</div>Carregando clientes…</div>
+      </div>
+      <div class="stats-row">
+        <div class="stat-box"><div class="stat-val" id="s-total">0</div><div class="stat-lbl">Total</div></div>
+        <div class="stat-box"><div class="stat-val" id="s-won">0</div><div class="stat-lbl">Ganhas</div></div>
+        <div class="stat-box"><div class="stat-val" id="s-valor">R$0</div><div class="stat-lbl">Valor</div></div>
       </div>
     </div>
-    <div class="stats-row">
-      <div class="stat-box"><div class="stat-val" id="s-total">0</div><div class="stat-lbl">Total</div></div>
-      <div class="stat-box"><div class="stat-val" id="s-won">0</div><div class="stat-lbl">Ganhas</div></div>
-      <div class="stat-box"><div class="stat-val" id="s-valor">R$0</div><div class="stat-lbl">Valor</div></div>
+  </div>
+
+  <!-- PROJETOS VIEW (Kanban) -->
+  <div class="projects-view" id="projects-view">
+    <div class="pv-header">
+      <div>
+        <div class="pv-title">Gestão de Projetos</div>
+        <div class="pv-sub" id="pv-sub">Acompanhe o andamento de cada cliente</div>
+      </div>
+      <div class="pv-hspace"></div>
+      <input class="pv-search" id="pv-search" placeholder="Buscar cliente…" oninput="renderKanban()"/>
+    </div>
+    <div style="display:flex;flex:1;overflow:hidden">
+      <div class="kanban" id="kanban"><!-- JS --></div>
+      <div class="proj-detail" id="proj-detail"><!-- JS --></div>
     </div>
   </div>
-</div>
-
-<div class="upload-hint" id="upload-hint">
-  <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
-  No QGIS: <b>Exportar camada → Salvar como → GeoJSON (EPSG:4326)</b> → carregue aqui
 </div>
 
 <script>
-// ── dados de exemplo para demo ──
-const DEMO_GEOJSON = {
-  type: "FeatureCollection",
-  features: [
-    { type:"Feature", geometry:{type:"Point",coordinates:[-47.8103,-21.1775]}, properties:{empresa:"Agro São Paulo",cidade:"Ribeirão Preto",estado:"SP",contato:"Carlos Mendes",telefone:"(16) 99234-5678",email:"carlos@agrosp.com.br",data_proposta:"2024-11-10",valor:45000,status:"won",servico:"Assessoria + Laudo RGB",pdf_link:"",observacoes:"Cliente interessado em expansão."} },
-    { type:"Feature", geometry:{type:"Point",coordinates:[-34.877,-8.0476]},   properties:{empresa:"Tech Recife",cidade:"Recife",estado:"PE",contato:"Ana Lima",telefone:"(81) 98765-4321",email:"ana@techrecife.com",data_proposta:"2024-12-05",valor:28000,status:"sent",servico:"Laudo LiDAR",pdf_link:"",observacoes:"Aguardando retorno."} },
-    { type:"Feature", geometry:{type:"Point",coordinates:[-51.2177,-30.0346]}, properties:{empresa:"Construções Sul",cidade:"Porto Alegre",estado:"RS",contato:"Marcos Oliveira",telefone:"(51) 97654-3210",email:"marcos@construcaosul.com",data_proposta:"2024-10-22",valor:92000,status:"neg",servico:"Assessoria",pdf_link:"",observacoes:"Negociando prazo."} },
-    { type:"Feature", geometry:{type:"Point",coordinates:[-38.5014,-12.9714]}, properties:{empresa:"Saúde Nordeste",cidade:"Salvador",estado:"BA",contato:"Fernanda Costa",telefone:"(71) 96543-2109",email:"fcosta@saudene.com",data_proposta:"2024-09-15",valor:67000,status:"won",servico:"Laudo RGB",pdf_link:"",observacoes:"Contrato assinado."} },
-    { type:"Feature", geometry:{type:"Point",coordinates:[-49.2648,-16.6869]}, properties:{empresa:"Varejo Centro-Oeste",cidade:"Goiânia",estado:"GO",contato:"Roberto Alves",telefone:"(62) 95432-1098",email:"roberto@varejoco.com",data_proposta:"2025-01-08",valor:19000,status:"lost",servico:"Laudo RGB e LiDAR",pdf_link:"",observacoes:"Optou por concorrente."} },
-    { type:"Feature", geometry:{type:"Point",coordinates:[-51.3889,-22.1256]}, properties:{empresa:"Cana Oeste",cidade:"Presidente Prudente",estado:"SP",contato:"Luiza Ferreira",telefone:"(18) 98815-3529",email:"luiza@canaoeste.com.br",data_proposta:"2025-02-20",valor:38000,status:"neg",servico:"Assessoria + Laudo LiDAR",pdf_link:"",observacoes:"Reunião marcada para março."} },
-  ]
-};
+// ═══════════════════════════════════════════════════════
+// CONFIGURAÇÃO — altere a URL abaixo para o seu GeoJSON
+// ═══════════════════════════════════════════════════════
+const GEOJSON_URL = 'https://raw.githubusercontent.com/ariascartografia-del/clientes-mapa/main/clientes.geojson';
+const PROJECTS_KEY = 'ariascartografia_projetos_v1';
 
-const STATUS_COLOR = { won:'#1dbe8a', sent:'#4b9cf5', neg:'#f5a623', lost:'#e05252' };
-const STATUS_LABEL = { won:'Ganha', sent:'Enviada', neg:'Em negociação', lost:'Perdida' };
-const BADGE_CLASS  = { won:'badge-won', sent:'badge-sent', neg:'badge-neg', lost:'badge-lost' };
-const DOT_CLASS    = { won:'dot-won', sent:'dot-sent', neg:'dot-neg', lost:'dot-lost' };
+// ── Etapas do projeto ──
+const ETAPAS = [
+  { id:'cadastro',       nome:'Cadastro inicial',           cor:'#7c8099' },
+  { id:'aguardando_doc', nome:'Aguardando documentos',      cor:'#f5a623' },
+  { id:'em_processo',    nome:'Em processo',                cor:'#4b9cf5' },
+  { id:'laudo_calib',    nome:'Laudo de calibração',        cor:'#9b6dff' },
+  { id:'enviado_md',     nome:'Enviado para o MD',          cor:'#f57542' },
+  { id:'apresentacao',   nome:'Apresentação institucional', cor:'#1dbe8a' },
+  { id:'portaria',       nome:'Publicação em portaria',     cor:'#e05252' },
+  { id:'finalizado',     nome:'Finalizado',                 cor:'#1dbe8a' },
+];
 
-let map, allFeatures = [], markers = [], activeStatus = 'all', activeServico = 'all', activeId = null;
+const STATUS_COLOR = {won:'#1dbe8a',sent:'#4b9cf5',neg:'#f5a623',lost:'#e05252'};
+const STATUS_LABEL = {won:'Ganha',sent:'Enviada',neg:'Em negociação',lost:'Perdida'};
 
-// ── init mapa ──
-map = L.map('map', { zoomControl: true }).setView([-15.78, -47.93], 4);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '© OpenStreetMap contributors',
-  maxZoom: 18
-}).addTo(map);
+let map, allFeatures=[], markers=[], projects={};
+let activeStatus='all', activeServico='all', activeMapId=null, activeProjId=null;
+let currentView='mapa';
 
-// carrega demo
-loadFeatures(DEMO_GEOJSON);
-document.getElementById('upload-hint').style.display = 'flex';
+// ── Carrega projetos do localStorage ──
+function loadProjects(){ try{ const r=localStorage.getItem(PROJECTS_KEY); if(r) projects=JSON.parse(r); }catch(e){} }
+function saveProjects(){ try{ localStorage.setItem(PROJECTS_KEY,JSON.stringify(projects)); }catch(e){} }
+function getProj(id){ if(!projects[id]) projects[id]={etapa:'cadastro',notas:'',historico:[]}; return projects[id]; }
 
-function loadGeoJSON(input) {
-  const file = input.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    try {
-      const geojson = JSON.parse(e.target.result);
-      loadFeatures(geojson);
-      document.getElementById('upload-hint').style.display = 'none';
-    } catch(err) {
-      alert('Arquivo GeoJSON inválido. Verifique o formato.');
-    }
-  };
-  reader.readAsText(file);
-  input.value = '';
+// ── Inicializa mapa ──
+map = L.map('map').setView([-15.78,-47.93],4);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:18}).addTo(map);
+map.on('click', e=>{ if(!e.originalEvent.target.closest && !e.originalEvent.target.classList.contains('leaflet-marker-icon')) closeDetail(); });
+
+// ── Carrega GeoJSON automaticamente ──
+loadProjects();
+fetchGeoJSON();
+
+async function fetchGeoJSON(){
+  try {
+    // Tenta primeiro via raw do GitHub (sem CORS issues quando hospedado no GitHub Pages)
+    const res = await fetch(GEOJSON_URL);
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const geojson = await res.json();
+    processGeoJSON(geojson);
+  } catch(e) {
+    console.warn('Não foi possível carregar GeoJSON remoto:', e.message);
+    // Fallback: dados demo
+    processGeoJSON(getDemoGeoJSON());
+    document.getElementById('count-pill').textContent = '⚠ demo (sem conexão)';
+  } finally {
+    document.getElementById('loading-bar').style.display='none';
+  }
 }
 
-function loadFeatures(geojson) {
-  allFeatures = (geojson.features || []).filter(f => f.geometry && f.geometry.type === 'Point');
+function processGeoJSON(geojson){
+  allFeatures = (geojson.features||[]).filter(f=>f.geometry&&f.geometry.type==='Point');
   buildServicoChips();
-  render();
-  if (allFeatures.length > 0) fitBounds();
+  renderMap();
+  renderKanban();
+  if(allFeatures.length>0) fitBounds();
+  document.getElementById('count-pill').textContent = allFeatures.length+' cliente'+(allFeatures.length!==1?'s':'');
+  const won = allFeatures.filter(f=>f.properties.status==='won').length;
+  document.getElementById('pv-sub').textContent = `${allFeatures.length} clientes · ${won} ganhos`;
 }
 
-function fitBounds() {
-  const coords = allFeatures.map(f => [f.geometry.coordinates[1], f.geometry.coordinates[0]]);
-  if (coords.length === 1) { map.setView(coords[0], 10); return; }
-  map.fitBounds(L.latLngBounds(coords), { padding: [40, 40] });
+// ════════════════════════
+// VIEWS
+// ════════════════════════
+function showView(v){
+  currentView=v;
+  document.getElementById('map-view').style.display     = v==='mapa'?'flex':'none';
+  document.getElementById('projects-view').className    = 'projects-view'+(v==='projetos'?' active':'');
+  document.getElementById('filter-bar').style.display   = v==='mapa'?'flex':'none';
+  document.getElementById('tab-mapa').className         = 'tab-btn'+(v==='mapa'?' active':'');
+  document.getElementById('tab-projetos').className     = 'tab-btn'+(v==='projetos'?' active':'');
+  if(v==='mapa') setTimeout(()=>map.invalidateSize(),50);
 }
 
-function buildServicoChips() {
-  const servicos = [...new Set(allFeatures.map(f => f.properties.servico).filter(Boolean))].sort();
-  const container = document.getElementById('servico-chips');
-  container.innerHTML = servicos.map(s =>
-    `<div class="chip ${activeServico===s?'active':''}" onclick="setServico('${s.replace(/'/g,"\\'")}')">${s}</div>`
+// ════════════════════════
+// MAPA
+// ════════════════════════
+function buildServicoChips(){
+  const servicos=[...new Set(allFeatures.map(f=>f.properties.servico).filter(Boolean))].sort();
+  document.getElementById('servico-chips').innerHTML = servicos.map(s=>
+    `<div class="chip ${activeServico===s?'active':''}" onclick="setServico('${esc(s)}')">${s}</div>`
   ).join('');
 }
 
-function setStatus(v) {
-  activeStatus = v;
-  ['all','won','sent','neg','lost'].forEach(s => {
-    const el = document.getElementById('chip-'+s);
-    el.className = 'chip' + (s !== 'all' && s !== 'all' ? ' '+s : '') + (activeStatus === s ? ' active' : '');
+function setStatus(v){
+  activeStatus=v;
+  ['all','won','sent','neg','lost'].forEach(s=>{
+    const el=document.getElementById('chip-'+s);
+    if(!el) return;
+    el.className='chip'+(s!=='all'?' '+s:'')+(activeStatus===s?' active':'');
   });
-  render();
+  renderMap();
 }
 
-function setServico(v) {
-  activeServico = activeServico === v ? 'all' : v;
-  buildServicoChips();
-  render();
-}
+function setServico(v){ activeServico=activeServico===v?'all':v; buildServicoChips(); renderMap(); }
+function clearFilters(){ activeStatus='all'; activeServico='all'; setStatus('all'); buildServicoChips(); renderMap(); }
 
-function clearFilters() {
-  activeStatus = 'all';
-  activeServico = 'all';
-  ['all','won','sent','neg','lost'].forEach(s => {
-    document.getElementById('chip-'+s).className = 'chip' + (s !== 'all' ? ' '+s : '') + (s === 'all' ? ' active' : '');
-  });
-  buildServicoChips();
-  render();
-}
-
-function filtered() {
-  return allFeatures.filter(f => {
-    const p = f.properties;
-    const okStatus  = activeStatus  === 'all' || p.status  === activeStatus;
-    const okServico = activeServico === 'all' || p.servico === activeServico;
-    return okStatus && okServico;
+function filtered(){
+  return allFeatures.filter(f=>{
+    const p=f.properties;
+    return (activeStatus==='all'||p.status===activeStatus)&&(activeServico==='all'||p.servico===activeServico);
   });
 }
 
-function makeIcon(status) {
-  const c = STATUS_COLOR[status] || '#888';
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36">
-    <filter id="sh"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="${c}" flood-opacity="0.5"/></filter>
-    <path filter="url(#sh)" d="M14 0C6.27 0 0 6.27 0 14c0 9.33 14 22 14 22S28 23.33 28 14C28 6.27 21.73 0 14 0z" fill="${c}"/>
-    <circle cx="14" cy="14" r="6" fill="rgba(255,255,255,0.9)"/>
+function makeIcon(status, etapaColor){
+  const c = STATUS_COLOR[status]||'#888';
+  const hasProj = etapaColor && status==='won';
+  const ring = hasProj ? etapaColor : 'transparent';
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36">
+    <path d="M14 0C6.27 0 0 6.27 0 14c0 9.33 14 22 14 22S28 23.33 28 14C28 6.27 21.73 0 14 0z" fill="${c}"/>
+    <circle cx="14" cy="14" r="7" fill="rgba(255,255,255,0.15)"/>
+    <circle cx="14" cy="14" r="5" fill="rgba(255,255,255,0.9)"/>
   </svg>`;
   return L.divIcon({
-    html: `<div style="width:28px;height:36px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.4))">${svg}</div>`,
-    iconSize: [28, 36], iconAnchor: [14, 36], popupAnchor: [0, -36], className: ''
+    html:`<div style="width:28px;height:36px;filter:drop-shadow(0 2px 5px rgba(0,0,0,.5))">${svg}</div>`,
+    iconSize:[28,36],iconAnchor:[14,36],popupAnchor:[0,-36],className:''
   });
 }
 
-function render() {
-  markers.forEach(m => map.removeLayer(m));
-  markers = [];
-  const fc = filtered();
-
-  fc.forEach((f, i) => {
-    const p = f.properties;
-    const [lng, lat] = f.geometry.coordinates;
-    const m = L.marker([lat, lng], { icon: makeIcon(p.status) });
+function renderMap(){
+  markers.forEach(m=>map.removeLayer(m)); markers=[];
+  const fc=filtered();
+  fc.forEach(f=>{
+    const p=f.properties;
+    const [lng,lat]=f.geometry.coordinates;
+    const proj=getProj(fid(f));
+    const etapa=ETAPAS.find(e=>e.id===proj.etapa);
+    const m=L.marker([lat,lng],{icon:makeIcon(p.status, etapa?.cor)});
     m.bindTooltip(
       `<div style="font-family:'DM Sans',sans-serif"><b>${p.empresa||'—'}</b><br><span style="color:#7c8099">${p.cidade||''}${p.estado?', '+p.estado:''}</span></div>`,
-      { className: 'custom-tooltip', direction: 'top', offset: [0, -4] }
+      {className:'ctt',direction:'top',offset:[0,-4]}
     );
-    m.on('click', () => openDetail(f));
-    m.addTo(map);
-    markers.push(m);
+    m.on('click',()=>openMapDetail(f));
+    m.addTo(map); markers.push(m);
   });
 
   // sidebar
-  const list = document.getElementById('sidebar-list');
-  if (fc.length === 0) {
-    list.innerHTML = `<div class="empty"><div class="empty-icon">🔍</div>Nenhum cliente neste filtro</div>`;
+  const list=document.getElementById('sb-list');
+  if(fc.length===0){
+    list.innerHTML=`<div class="empty-state"><div class="empty-icon">🔍</div>Nenhum cliente neste filtro</div>`;
   } else {
-    list.innerHTML = fc.map(f => {
-      const p = f.properties;
-      const ini = initials(p.empresa||'?');
-      const id = featureId(f);
-      return `<div class="client-item ${activeId===id?'active':''}" id="item-${id}" onclick="openDetail(${JSON.stringify(f).replace(/"/g,'&quot;')})">
-        <div class="client-avatar">${ini}</div>
-        <div class="client-info">
-          <div class="client-name">${p.empresa||'—'}</div>
-          <div class="client-sub">${p.cidade||''}${p.estado?', '+p.estado:''} · ${p.servico||'—'}</div>
+    list.innerHTML=fc.map(f=>{
+      const p=f.properties; const id=fid(f);
+      return `<div class="client-item ${activeMapId===id?'active':''}" id="mi-${id}" onclick='openMapDetail(${JSON.stringify(f).replace(/'/g,"&#39;")})'>
+        <div class="ci-av">${ini(p.empresa||'?')}</div>
+        <div class="ci-info">
+          <div class="ci-name">${p.empresa||'—'}</div>
+          <div class="ci-sub">${p.cidade||''}${p.estado?', '+p.estado:''} · ${p.servico||'—'}</div>
         </div>
-        <div class="status-dot ${DOT_CLASS[p.status]||'dot-sent'}"></div>
+        <div class="sdot ${p.status||'sent'}"></div>
       </div>`;
     }).join('');
   }
-
-  // stats
-  const total = fc.length;
-  const won   = fc.filter(f => f.properties.status === 'won').length;
-  const valor = fc.reduce((a, f) => a + (parseFloat(f.properties.valor) || 0), 0);
-  document.getElementById('s-total').textContent = total;
-  document.getElementById('s-won').textContent   = won;
-  document.getElementById('s-valor').textContent = valor >= 1000
-    ? 'R$' + (valor/1000).toFixed(0) + 'k'
-    : 'R$' + valor.toFixed(0);
-  document.getElementById('count-pill').textContent = total + ' cliente' + (total !== 1 ? 's' : '');
+  const tot=fc.length, won=fc.filter(f=>f.properties.status==='won').length;
+  const valor=fc.reduce((a,f)=>a+(parseFloat(f.properties.valor)||0),0);
+  document.getElementById('s-total').textContent=tot;
+  document.getElementById('s-won').textContent=won;
+  document.getElementById('s-valor').textContent=valor>=1000?'R$'+(valor/1000).toFixed(0)+'k':'R$'+valor.toFixed(0);
 }
 
-function featureId(f) {
-  const p = f.properties;
-  return (p.empresa||'') + '_' + (f.geometry.coordinates||[]).join('_');
-}
-
-function initials(name) {
-  return name.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
-}
-
-function fmtValor(n) {
-  if (!n) return '—';
-  return 'R$ ' + Number(n).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
-}
-
-function fmtData(s) {
-  if (!s) return '—';
-  const d = new Date(s + 'T00:00:00');
-  return isNaN(d) ? s : d.toLocaleDateString('pt-BR');
-}
-
-function openDetail(f) {
-  const p = f.properties;
-  const id = featureId(f);
-  activeId = id;
-
-  // highlight sidebar
-  document.querySelectorAll('.client-item').forEach(el => el.classList.remove('active'));
-  const item = document.getElementById('item-' + id);
-  if (item) { item.classList.add('active'); item.scrollIntoView({ block: 'nearest' }); }
-
-  // fly to marker
-  const [lng, lat] = f.geometry.coordinates;
-  map.flyTo([lat, lng], Math.max(map.getZoom(), 10), { duration: 0.8 });
-
-  const panel = document.getElementById('detail-panel');
-  const bc = BADGE_CLASS[p.status] || 'badge-sent';
-  const sl = STATUS_LABEL[p.status] || p.status;
-  panel.innerHTML = `
-    <div class="dp-header">
-      <div class="dp-avatar">${initials(p.empresa||'?')}</div>
+function openMapDetail(f){
+  const p=f.properties; const id=fid(f);
+  activeMapId=id;
+  document.querySelectorAll('.client-item').forEach(el=>el.classList.remove('active'));
+  const item=document.getElementById('mi-'+id);
+  if(item){item.classList.add('active');item.scrollIntoView({block:'nearest'});}
+  const [lng,lat]=f.geometry.coordinates;
+  map.flyTo([lat,lng],Math.max(map.getZoom(),10),{duration:.8});
+  const bc=p.status||'sent';
+  const proj=getProj(id);
+  const etapa=ETAPAS.find(e=>e.id===proj.etapa)||ETAPAS[0];
+  document.getElementById('detail-panel').innerHTML=`
+    <div class="dp-hd">
+      <div class="dp-av">${ini(p.empresa||'?')}</div>
       <div style="flex:1;min-width:0">
         <div class="dp-name">${p.empresa||'—'}</div>
         <div class="dp-loc">📍 ${p.cidade||''}${p.estado?', '+p.estado:''}</div>
       </div>
-      <button class="dp-close" onclick="closeDetail()">✕</button>
+      <button class="dp-x" onclick="closeDetail()">✕</button>
     </div>
     <div class="dp-body">
-      <div class="dp-row">
-        <span class="dp-lbl">Status</span>
-        <span class="status-badge ${bc}">${sl}</span>
+      <div class="dp-row"><span class="dp-lbl">Status</span><span class="sbadge ${bc}">${STATUS_LABEL[p.status]||p.status}</span></div>
+      ${p.servico?`<div class="dp-row"><span class="dp-lbl">Serviço</span><span class="dp-val">${p.servico}</span></div>`:''}
+      ${p.data_proposta?`<div class="dp-row"><span class="dp-lbl">Data proposta</span><span class="dp-val">${fmtD(p.data_proposta)}</span></div>`:''}
+      ${p.valor?`<div class="dp-row"><span class="dp-lbl">Valor</span><span class="dp-val">${fmtV(p.valor)}</span></div>`:''}
+      ${p.contato?`<hr class="dp-div"/><div class="dp-row"><span class="dp-lbl">Contato</span><span class="dp-val">${p.contato}</span></div>`:''}
+      ${p.telefone?`<div class="dp-row"><span class="dp-lbl">Telefone</span><span class="dp-val" style="font-family:'DM Mono',monospace;font-size:11px">${p.telefone}</span></div>`:''}
+      ${p.email?`<div class="dp-row"><span class="dp-lbl">Email</span><span class="dp-val" style="color:var(--sent);font-size:11px">${p.email}</span></div>`:''}
+      ${p.pdf_link?`<hr class="dp-div"/><div class="dp-row"><span class="dp-lbl">Proposta</span><a class="pdf-a" href="${p.pdf_link}" target="_blank">↗ Abrir PDF</a></div>`:''}
+      ${p.observacoes?`<hr class="dp-div"/><div class="dp-note">${p.observacoes}</div>`:''}
+      <hr class="dp-div"/>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Etapa atual do projeto</div>
+      <div style="display:flex;align-items:center;gap:6px;padding:7px 9px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">
+        <div style="width:8px;height:8px;border-radius:50%;background:${etapa.cor};flex-shrink:0"></div>
+        <span style="font-size:12px;font-weight:500;color:var(--text)">${etapa.nome}</span>
       </div>
-      ${p.servico ? `<div class="dp-row"><span class="dp-lbl">Serviço</span><span class="dp-val">${p.servico}</span></div>` : ''}
-      ${p.data_proposta ? `<div class="dp-row"><span class="dp-lbl">Data proposta</span><span class="dp-val">${fmtData(p.data_proposta)}</span></div>` : ''}
-      ${p.valor ? `<div class="dp-row"><span class="dp-lbl">Valor</span><span class="dp-val">${fmtValor(p.valor)}</span></div>` : ''}
-      <hr class="dp-divider"/>
-      ${p.contato ? `<div class="dp-row"><span class="dp-lbl">Contato</span><span class="dp-val">${p.contato}</span></div>` : ''}
-      ${p.telefone ? `<div class="dp-row"><span class="dp-lbl">Telefone</span><span class="dp-val" style="font-family:'DM Mono',monospace;font-size:12px">${p.telefone}</span></div>` : ''}
-      ${p.email ? `<div class="dp-row"><span class="dp-lbl">Email</span><span class="dp-val" style="color:var(--sent);font-size:12px">${p.email}</span></div>` : ''}
-      ${p.pdf_link ? `<hr class="dp-divider"/><div class="dp-row"><span class="dp-lbl">Proposta</span><a class="pdf-link" href="${p.pdf_link}" target="_blank">↗ Abrir PDF</a></div>` : ''}
-      ${p.observacoes ? `<hr class="dp-divider"/><div class="dp-note">${p.observacoes}</div>` : ''}
+      <button class="proj-btn" onclick="showView('projetos');setTimeout(()=>openProjDetail('${id}'),100)">
+        📋 Gerenciar projeto
+      </button>
     </div>`;
-  panel.classList.add('open');
+  document.getElementById('detail-panel').classList.add('open');
 }
 
-function closeDetail() {
+function closeDetail(){
   document.getElementById('detail-panel').classList.remove('open');
-  document.querySelectorAll('.client-item').forEach(el => el.classList.remove('active'));
-  activeId = null;
+  document.querySelectorAll('.client-item').forEach(el=>el.classList.remove('active'));
+  activeMapId=null;
 }
 
-map.on('click', e => {
-  if (!e.originalEvent.target.closest('.client-item')) closeDetail();
-});
+function fitBounds(){
+  const coords=allFeatures.map(f=>[f.geometry.coordinates[1],f.geometry.coordinates[0]]);
+  if(coords.length===1){map.setView(coords[0],10);return;}
+  map.fitBounds(L.latLngBounds(coords),{padding:[40,40]});
+}
+
+// ════════════════════════
+// KANBAN / PROJETOS
+// ════════════════════════
+function renderKanban(){
+  const q=(document.getElementById('pv-search')?.value||'').toLowerCase();
+  const won=allFeatures.filter(f=>f.properties.status==='won');
+  const others=allFeatures.filter(f=>f.properties.status!=='won');
+  // Mostra todos, mas ganhos em destaque
+  const toShow=[...won,...others].filter(f=>{
+    if(!q) return true;
+    const p=f.properties;
+    return (p.empresa||'').toLowerCase().includes(q)||(p.cidade||'').toLowerCase().includes(q);
+  });
+
+  const kanban=document.getElementById('kanban');
+  kanban.innerHTML=ETAPAS.map(etapa=>{
+    const cards=toShow.filter(f=>getProj(fid(f)).etapa===etapa.id);
+    const cardsHtml=cards.map(f=>{
+      const p=f.properties; const id=fid(f);
+      const proj=getProj(id);
+      const etapaIdx=ETAPAS.findIndex(e=>e.id===proj.etapa);
+      const isFirst=etapaIdx===0, isLast=etapaIdx===ETAPAS.length-1;
+      const dias=proj.historico?.length>0
+        ? Math.floor((Date.now()-new Date(proj.historico[0].data))/(1000*60*60*24))
+        : 0;
+      return `<div class="kard ${activeProjId===id?'active':''}" onclick="openProjDetail('${id}')" style="border-left-color:${p.status==='won'?'var(--won)':'var(--border)'}">
+        <div class="kard-name">${p.empresa||'—'}</div>
+        <div class="kard-meta">${p.cidade||''}${p.estado?', '+p.estado:''}<br>${p.contato||''}</div>
+        ${p.servico?`<div class="kard-service">${p.servico}</div>`:''}
+        <div class="kard-footer">
+          <span class="kard-days">${dias>0?dias+'d':''}</span>
+          <div class="kard-move-btns">
+            ${!isFirst?`<button class="move-btn" onclick="moveEtapa(event,'${id}',-1)" title="Etapa anterior">←</button>`:''}
+            ${!isLast?`<button class="move-btn" onclick="moveEtapa(event,'${id}',1)" title="Próxima etapa">→</button>`:''}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+    return `<div class="kol">
+      <div class="kol-head">
+        <div class="kol-color" style="background:${etapa.cor}"></div>
+        <span class="kol-name">${etapa.nome}</span>
+        <span class="kol-cnt">${cards.length}</span>
+      </div>
+      <div class="kol-cards">${cardsHtml||'<div style="height:40px"></div>'}</div>
+    </div>`;
+  }).join('');
+}
+
+function moveEtapa(e, id, dir){
+  e.stopPropagation();
+  const proj=getProj(id);
+  const idx=ETAPAS.findIndex(et=>et.id===proj.etapa);
+  const newIdx=Math.max(0,Math.min(ETAPAS.length-1,idx+dir));
+  if(newIdx===idx) return;
+  proj.etapa=ETAPAS[newIdx].id;
+  proj.historico=proj.historico||[];
+  proj.historico.push({etapa:proj.etapa,data:new Date().toISOString()});
+  saveProjects();
+  renderKanban();
+  if(activeProjId===id) openProjDetail(id);
+}
+
+function openProjDetail(id){
+  activeProjId=id;
+  const f=allFeatures.find(f=>fid(f)===id);
+  if(!f) return;
+  const p=f.properties;
+  const proj=getProj(id);
+  const etapaAtualIdx=ETAPAS.findIndex(e=>e.id===proj.etapa);
+
+  const timeline=ETAPAS.map((et,i)=>{
+    const isDone=i<etapaAtualIdx;
+    const isCurrent=i===etapaAtualIdx;
+    const hist=proj.historico?.find(h=>h.etapa===et.id);
+    const dataStr=hist?fmtD(hist.data.split('T')[0]):'';
+    const circleClass=isDone?'done':isCurrent?'current':'';
+    const nameClass=isDone?'done':isCurrent?'current':'';
+    const connClass=isDone?'done':'';
+    return `<div class="etapa-row" onclick="setEtapaDirectly('${id}',${i})" title="Ir para esta etapa">
+      <div class="etapa-line">
+        <div class="etapa-circle ${circleClass}">
+          ${isDone?'<span class="checkmark">✓</span>':isCurrent?`<div style="width:6px;height:6px;border-radius:50%;background:var(--sent)"></div>`:''}
+        </div>
+        ${i<ETAPAS.length-1?`<div class="etapa-connector ${connClass}"></div>`:''}
+      </div>
+      <div class="etapa-text">
+        <div class="etapa-name ${nameClass}">${et.nome}</div>
+        ${dataStr?`<div class="etapa-date">${dataStr}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('proj-detail').innerHTML=`
+    <div class="pd-hd">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <div style="width:34px;height:34px;border-radius:8px;background:rgba(29,190,138,.15);color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex-shrink:0">${ini(p.empresa||'?')}</div>
+        <div>
+          <div class="pd-name">${p.empresa||'—'}</div>
+          <div class="pd-loc">📍 ${p.cidade||''}${p.estado?', '+p.estado:''}</div>
+        </div>
+        <button style="margin-left:auto;background:none;border:none;color:var(--muted);cursor:pointer;font-size:15px" onclick="closeProjDetail()">✕</button>
+      </div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap">
+        <span class="sbadge ${p.status||'sent'}">${STATUS_LABEL[p.status]||'—'}</span>
+        ${p.servico?`<span style="padding:2px 8px;border-radius:10px;font-size:10px;font-weight:500;background:rgba(29,190,138,.1);color:var(--accent);border:1px solid rgba(29,190,138,.2)">${p.servico}</span>`:''}
+      </div>
+    </div>
+    <div class="pd-body">
+      <div class="pd-section">Progresso do projeto</div>
+      <div class="etapas-list">${timeline}</div>
+      <hr style="border:none;border-top:1px solid var(--border);margin:4px 0"/>
+      <div class="pd-section">Alterar etapa</div>
+      <div class="etapa-select-row">
+        <select class="etapa-select" id="etapa-sel-${id}">
+          ${ETAPAS.map(et=>`<option value="${et.id}" ${proj.etapa===et.id?'selected':''}>${et.nome}</option>`).join('')}
+        </select>
+        <button class="etapa-save-btn" onclick="saveEtapa('${id}')">Salvar</button>
+      </div>
+      <hr style="border:none;border-top:1px solid var(--border);margin:4px 0"/>
+      <div class="pd-section">Notas internas</div>
+      <textarea class="notes-area" id="notes-${id}" placeholder="Anotações sobre este projeto…">${proj.notas||''}</textarea>
+      <button class="notes-save-btn" onclick="saveNotes('${id}')">Salvar notas</button>
+      ${p.email||p.telefone?`<hr style="border:none;border-top:1px solid var(--border);margin:4px 0"/>
+      <div class="pd-section">Contato</div>
+      ${p.contato?`<div class="pd-row"><span class="pd-lbl">Nome</span><span class="pd-val">${p.contato}</span></div>`:''}
+      ${p.telefone?`<div class="pd-row"><span class="pd-lbl">Telefone</span><span class="pd-val" style="font-family:'DM Mono',monospace;font-size:11px">${p.telefone}</span></div>`:''}
+      ${p.email?`<div class="pd-row"><span class="pd-lbl">Email</span><span class="pd-val" style="color:var(--sent);font-size:11px">${p.email}</span></div>`:''}
+      `:''}
+      ${p.pdf_link?`<hr style="border:none;border-top:1px solid var(--border);margin:4px 0"/>
+      <a class="pdf-a" href="${p.pdf_link}" target="_blank">↗ Abrir proposta PDF</a>`:''}
+    </div>`;
+  document.getElementById('proj-detail').classList.add('open');
+  renderKanban(); // atualiza active state
+}
+
+function closeProjDetail(){
+  document.getElementById('proj-detail').classList.remove('open');
+  activeProjId=null; renderKanban();
+}
+
+function saveEtapa(id){
+  const sel=document.getElementById('etapa-sel-'+id);
+  if(!sel) return;
+  const proj=getProj(id);
+  const novaEtapa=sel.value;
+  if(proj.etapa===novaEtapa) return;
+  proj.etapa=novaEtapa;
+  proj.historico=proj.historico||[];
+  proj.historico.push({etapa:novaEtapa,data:new Date().toISOString()});
+  saveProjects();
+  openProjDetail(id); // re-render
+}
+
+function setEtapaDirectly(id, idx){
+  const proj=getProj(id);
+  const novaEtapa=ETAPAS[idx].id;
+  if(proj.etapa===novaEtapa) return;
+  proj.etapa=novaEtapa;
+  proj.historico=proj.historico||[];
+  proj.historico.push({etapa:novaEtapa,data:new Date().toISOString()});
+  saveProjects();
+  openProjDetail(id);
+}
+
+function saveNotes(id){
+  const ta=document.getElementById('notes-'+id);
+  if(!ta) return;
+  const proj=getProj(id);
+  proj.notas=ta.value;
+  saveProjects();
+  ta.style.borderColor='var(--accent)';
+  setTimeout(()=>ta.style.borderColor='',1200);
+}
+
+// ════════════════════════
+// UTILS
+// ════════════════════════
+function fid(f){ const p=f.properties; return btoa(encodeURIComponent((p.empresa||'')+'_'+(f.geometry.coordinates||[]).join('_'))).replace(/=/g,''); }
+function ini(n){ return n.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
+function esc(s){ return s.replace(/'/g,"\\'"); }
+function fmtV(n){ return n?'R$ '+Number(n).toLocaleString('pt-BR',{minimumFractionDigits:2}):'—'; }
+function fmtD(s){ if(!s) return '—'; try{ return new Date(s+'T00:00:00').toLocaleDateString('pt-BR'); }catch(e){ return s; } }
+
+// ── Demo data (fallback quando sem internet) ──
+function getDemoGeoJSON(){
+  return {type:"FeatureCollection",features:[
+    {type:"Feature",geometry:{type:"Point",coordinates:[-47.8103,-21.1775]},properties:{empresa:"Agro São Paulo",cidade:"Ribeirão Preto",estado:"SP",contato:"Carlos Mendes",telefone:"(16) 99234-5678",email:"carlos@agrosp.com.br",data_proposta:"2024-11-10",valor:45000,status:"won",servico:"Assessoria + Laudo RGB",pdf_link:"",observacoes:"Cliente interessado em expansão."}},
+    {type:"Feature",geometry:{type:"Point",coordinates:[-34.877,-8.0476]},properties:{empresa:"Tech Recife",cidade:"Recife",estado:"PE",contato:"Ana Lima",telefone:"(81) 98765-4321",email:"ana@techrecife.com",data_proposta:"2024-12-05",valor:28000,status:"sent",servico:"Laudo LiDAR",pdf_link:"",observacoes:"Aguardando retorno."}},
+    {type:"Feature",geometry:{type:"Point",coordinates:[-51.2177,-30.0346]},properties:{empresa:"Construções Sul",cidade:"Porto Alegre",estado:"RS",contato:"Marcos Oliveira",telefone:"(51) 97654-3210",email:"marcos@construcaosul.com",data_proposta:"2024-10-22",valor:92000,status:"neg",servico:"Assessoria",pdf_link:"",observacoes:"Negociando prazo."}},
+    {type:"Feature",geometry:{type:"Point",coordinates:[-38.5014,-12.9714]},properties:{empresa:"Saúde Nordeste",cidade:"Salvador",estado:"BA",contato:"Fernanda Costa",telefone:"(71) 96543-2109",email:"fcosta@saudene.com",data_proposta:"2024-09-15",valor:67000,status:"won",servico:"Laudo RGB",pdf_link:"",observacoes:"Contrato assinado."}},
+    {type:"Feature",geometry:{type:"Point",coordinates:[-49.2648,-16.6869]},properties:{empresa:"Varejo Centro-Oeste",cidade:"Goiânia",estado:"GO",contato:"Roberto Alves",telefone:"(62) 95432-1098",email:"roberto@varejoco.com",data_proposta:"2025-01-08",valor:19000,status:"lost",servico:"Laudo RGB e LiDAR",pdf_link:"",observacoes:"Optou por concorrente."}},
+    {type:"Feature",geometry:{type:"Point",coordinates:[-51.3889,-22.1256]},properties:{empresa:"Arias Cartografia",cidade:"Presidente Prudente",estado:"SP",contato:"Luiza Ferreira",telefone:"(18) 98815-3529",email:"luiza@arias.com.br",data_proposta:"2025-02-20",valor:38000,status:"won",servico:"Assessoria + Laudo LiDAR",pdf_link:"",observacoes:"Reunião marcada."}},
+  ]};
+}
 </script>
 </body>
 </html>
