@@ -6,8 +6,11 @@
 <title>Arias Cartografia — CRM</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Firebase v9 compat -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
 :root{
   --bg:#0f1117;--surface:#181b24;--surface2:#1f2333;--surface3:#252840;
@@ -26,22 +29,51 @@
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 
+/* ── LOGIN ── */
+#login-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center}
+.login-card{background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:36px 40px;width:100%;max-width:360px;display:flex;flex-direction:column;align-items:center;gap:20px;box-shadow:var(--shadow)}
+.login-logo{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:600;letter-spacing:-.3px}
+.login-logo-dot{width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent)}
+.login-sub{font-size:13px;color:var(--muted);margin-top:-10px}
+.login-field{width:100%;display:flex;flex-direction:column;gap:5px}
+.login-field label{font-size:12px;color:var(--muted);font-weight:500}
+.login-input-wrap{position:relative;display:flex;align-items:center}
+.login-input{width:100%;padding:10px 40px 10px 13px;background:var(--surface2);border:1px solid var(--border);border-radius:9px;font-size:14px;color:var(--text);font-family:'DM Sans',sans-serif;outline:none;transition:border-color .15s}
+.login-input:focus{border-color:var(--accent)}
+.login-eye{position:absolute;right:11px;cursor:pointer;color:var(--muted);font-size:16px;user-select:none;line-height:1}
+.login-eye:hover{color:var(--text)}
+.login-btn{width:100%;padding:11px;background:var(--accent);border:none;border-radius:9px;font-size:14px;font-weight:600;color:white;cursor:pointer;transition:background .15s;letter-spacing:.2px}
+.login-btn:hover{background:var(--accent2)}
+.login-btn:disabled{opacity:.5;cursor:not-allowed}
+.login-error{font-size:12px;color:var(--lost);background:var(--lost-bg);border:1px solid rgba(224,82,82,.2);border-radius:8px;padding:8px 12px;width:100%;text-align:center;display:none}
+.login-saving{font-size:11px;color:var(--muted);display:none;align-items:center;gap:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+
 /* ── HEADER ── */
 header{display:flex;align-items:center;gap:0;padding:0;height:52px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;z-index:1000;position:relative}
-.logo{display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px;letter-spacing:-.3px;padding:0 16px;border-right:1px solid var(--border);height:100%}
+.logo{display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px;letter-spacing:-.3px;padding:0 16px;border-right:1px solid var(--border);height:100%;white-space:nowrap}
 .logo-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent)}
-.nav{display:flex;align-items:stretch;height:100%;flex:1}
-.nav-btn{display:flex;align-items:center;gap:6px;padding:0 16px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:none;color:var(--muted);transition:all .15s;border-bottom:2px solid transparent;white-space:nowrap}
+.nav{display:flex;align-items:stretch;height:100%;flex:1;overflow-x:auto}
+.nav::-webkit-scrollbar{display:none}
+.nav-btn{display:flex;align-items:center;gap:6px;padding:0 14px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:none;color:var(--muted);transition:all .15s;border-bottom:2px solid transparent;white-space:nowrap}
 .nav-btn:hover{color:var(--text)}
 .nav-btn.active{color:var(--text);border-bottom-color:var(--accent)}
-.nav-sep{width:1px;background:var(--border);margin:10px 0}
-.header-right{display:flex;align-items:center;gap:10px;padding:0 16px;border-left:1px solid var(--border);height:100%}
+.nav-sep{width:1px;background:var(--border);margin:10px 0;flex-shrink:0}
+.header-right{display:flex;align-items:center;gap:8px;padding:0 14px;border-left:1px solid var(--border);height:100%;flex-shrink:0}
 .count-pill{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:3px 10px}
+.sync-badge{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.sync-dot.saving{background:var(--neg);animation:pulse .8s ease-in-out infinite}
+.sync-dot.error{background:var(--lost)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.logout-btn{padding:4px 10px;border-radius:7px;font-size:12px;cursor:pointer;color:var(--muted);background:none;border:1px solid var(--border);transition:all .15s}
+.logout-btn:hover{color:var(--text);border-color:var(--border2)}
 
 /* ── FILTER BAR ── */
 .filter-bar{display:flex;align-items:center;gap:6px;padding:7px 16px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap}
 .flabel{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-right:2px}
-.chip{padding:3px 11px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--muted);transition:all .15s;user-select:none;display:inline-flex;align-items:center;gap:5px}
+.chip{padding:3px 11px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--muted);transition:all .15s;user-select:none}
 .chip:hover{color:var(--text);border-color:var(--border2)}
 .chip.active{color:var(--text);border-color:rgba(255,255,255,0.22);background:rgba(255,255,255,0.06)}
 .chip.won.active{color:var(--won);border-color:var(--won);background:var(--won-bg)}
@@ -52,15 +84,13 @@ header{display:flex;align-items:center;gap:0;padding:0;height:52px;background:va
 .chip.geo.active{color:var(--geo);border-color:var(--geo);background:var(--geo-bg)}
 .chip.topo.active{color:var(--topo);border-color:var(--topo);background:var(--topo-bg)}
 .chip.out.active{color:var(--out);border-color:var(--out);background:var(--out-bg)}
-.chip-x{padding:3px 9px;border-radius:20px;font-size:13px;cursor:pointer;color:var(--muted);background:none;border:1px solid var(--border);transition:all .15s;line-height:1}
-.chip-x:hover{color:var(--text);border-color:var(--border2)}
+.chip-x{padding:3px 9px;border-radius:20px;font-size:13px;cursor:pointer;color:var(--muted);background:none;border:1px solid var(--border);transition:all .15s}
+.chip-x:hover{color:var(--text)}
 .fsep{width:1px;height:14px;background:var(--border);margin:0 3px;flex-shrink:0}
 
 /* ── LAYOUT ── */
 .page{display:flex;flex-direction:column;height:100vh}
 .main{display:flex;flex:1;overflow:hidden}
-
-/* ── MAPA ── */
 #map{flex:1;min-width:0}
 .leaflet-container{background:#1a1d2b !important}
 .leaflet-tile{filter:brightness(.68) saturate(.55) hue-rotate(180deg)}
@@ -70,7 +100,7 @@ header{display:flex;align-items:center;gap:0;padding:0;height:52px;background:va
 .ctt{background:var(--surface) !important;border:1px solid var(--border2) !important;color:var(--text) !important;border-radius:6px !important;padding:5px 9px !important;font-family:'DM Sans',sans-serif !important;font-size:12px !important;box-shadow:var(--shadow) !important}
 .ctt::before{display:none !important}
 
-/* ── SIDEBAR MAPA ── */
+/* ── SIDEBAR ── */
 .sidebar{width:300px;flex-shrink:0;display:flex;flex-direction:column;background:var(--surface);border-left:1px solid var(--border);overflow:hidden}
 .sb-head{padding:11px 14px 8px;border-bottom:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:space-between}
 .sb-title{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
@@ -108,20 +138,17 @@ header{display:flex;align-items:center;gap:0;padding:0;height:52px;background:va
 .dp-div{border:none;border-top:1px solid var(--border)}
 .dp-note{background:var(--surface2);border-radius:8px;padding:8px 10px;font-size:12px;color:var(--muted);line-height:1.6}
 .sbadge{display:inline-flex;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
-.sbadge.won{color:var(--won);background:var(--won-bg)}
-.sbadge.sent{color:var(--sent);background:var(--sent-bg)}
-.sbadge.neg{color:var(--neg);background:var(--neg-bg)}
-.sbadge.lost{color:var(--lost);background:var(--lost-bg)}
+.sbadge.won{color:var(--won);background:var(--won-bg)}.sbadge.sent{color:var(--sent);background:var(--sent-bg)}
+.sbadge.neg{color:var(--neg);background:var(--neg-bg)}.sbadge.lost{color:var(--lost);background:var(--lost-bg)}
 .pdf-a{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:500;color:var(--accent);background:var(--won-bg);border:1px solid rgba(29,190,138,0.22);text-decoration:none}
 .pdf-a:hover{background:rgba(29,190,138,0.22)}
 .goto-btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:7px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid rgba(29,190,138,0.3);background:rgba(29,190,138,0.08);color:var(--accent);transition:all .15s;width:100%;margin-top:2px}
 .goto-btn:hover{background:rgba(29,190,138,0.18)}
 
-/* ── VIEWS GESTÃO (kanban) ── */
+/* ── KANBAN VIEWS ── */
 .mgmt-view{display:none;flex-direction:column;flex:1;overflow:hidden}
 .mgmt-view.active{display:flex}
 .map-wrap{display:flex;flex:1;overflow:hidden;position:relative}
-
 .mv-topbar{padding:11px 18px 9px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0;background:var(--surface)}
 .mv-title{font-size:13px;font-weight:600;color:var(--text)}
 .mv-sub{font-size:11px;color:var(--muted);margin-left:4px}
@@ -129,38 +156,31 @@ header{display:flex;align-items:center;gap:0;padding:0;height:52px;background:va
 .mv-search{padding:5px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text);font-family:'DM Sans',sans-serif;outline:none;width:170px}
 .mv-search::placeholder{color:var(--muted)}
 .mv-search:focus{border-color:var(--border2)}
-
 .kanban{display:flex;gap:10px;padding:12px 16px;overflow-x:auto;flex:1;align-items:flex-start}
 .kanban::-webkit-scrollbar{height:4px}
 .kanban::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
-
 .kol{flex-shrink:0;width:210px;display:flex;flex-direction:column;gap:7px}
 .kol-hd{display:flex;align-items:center;gap:6px;padding:6px 9px;border-radius:8px;background:var(--surface2);border:1px solid var(--border)}
 .kol-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 .kol-name{font-size:11px;font-weight:600;color:var(--text);flex:1}
 .kol-cnt{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1px 6px}
 .kol-cards{display:flex;flex-direction:column;gap:6px;min-height:50px}
-
 .kard{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 10px;cursor:pointer;transition:all .15s;border-left:3px solid var(--border)}
 .kard:hover{border-color:var(--border2);background:var(--surface3)}
 .kard.sel{border-left-color:var(--accent);background:var(--surface3)}
 .kard-name{font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kard-meta{font-size:11px;color:var(--muted);line-height:1.5}
-.kard-tag{display:inline-flex;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:500;margin-top:5px}
+.kard-tag{display:inline-flex;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:500;margin-top:5px;background:var(--surface3);color:var(--muted2);border:1px solid var(--border)}
 .kard-footer{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
 .kard-days{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)}
 .mbts{display:flex;gap:3px}
 .mbt{background:none;border:1px solid var(--border);border-radius:4px;color:var(--muted);font-size:11px;cursor:pointer;padding:1px 6px;transition:all .15s;line-height:1.6}
 .mbt:hover{color:var(--text);border-color:var(--border2)}
-
-/* ── STATUS BADGES ORCAMENTO ── */
 .kard-status{display:inline-flex;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:600;margin-top:4px}
-.kard-status.won{color:var(--won);background:var(--won-bg);border:1px solid rgba(29,190,138,.2)}
-.kard-status.sent{color:var(--sent);background:var(--sent-bg);border:1px solid rgba(75,156,245,.2)}
-.kard-status.neg{color:var(--neg);background:var(--neg-bg);border:1px solid rgba(245,166,35,.2)}
-.kard-status.lost{color:var(--lost);background:var(--lost-bg);border:1px solid rgba(224,82,82,.2)}
+.kard-status.won{color:var(--won);background:var(--won-bg)}.kard-status.sent{color:var(--sent);background:var(--sent-bg)}
+.kard-status.neg{color:var(--neg);background:var(--neg-bg)}.kard-status.lost{color:var(--lost);background:var(--lost-bg)}
 
-/* ── PROJ DETAIL ── */
+/* ── PROJ DETAIL PANEL ── */
 .proj-detail{width:270px;flex-shrink:0;background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;transform:translateX(8px);opacity:0;pointer-events:none;transition:transform .2s,opacity .2s}
 .proj-detail.open{transform:translateX(0);opacity:1;pointer-events:all}
 .pd-hd{padding:13px 14px;border-bottom:1px solid var(--border)}
@@ -175,8 +195,6 @@ header{display:flex;align-items:center;gap:0;padding:0;height:52px;background:va
 .pd-row{display:flex;gap:6px;align-items:flex-start;font-size:12px}
 .pd-lbl{color:var(--muted);min-width:78px;flex-shrink:0;font-size:11px}
 .pd-val{color:var(--text);font-weight:500;word-break:break-all}
-
-/* TIMELINE */
 .tl{display:flex;flex-direction:column}
 .tl-row{display:flex;align-items:flex-start;gap:8px;padding:5px 7px;cursor:pointer;border-radius:7px;transition:background .12s;margin:0 -7px}
 .tl-row:hover{background:var(--surface2)}
@@ -191,12 +209,10 @@ header{display:flex;align-items:center;gap:0;padding:0;height:52px;background:va
 .tl-name.done{color:var(--text)}.tl-name.cur{color:var(--sent)}
 .tl-date{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:1px}
 .ck{color:white;font-size:8px;line-height:1}
-
-/* ETAPA SELECT */
 .etapa-sel-row{display:flex;align-items:center;gap:7px}
 .etapa-sel{flex:1;padding:5px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text);font-family:'DM Sans',sans-serif;cursor:pointer}
 .etapa-sel:focus{outline:none;border-color:var(--border2)}
-.etapa-save{padding:5px 11px;background:var(--accent2);border:none;border-radius:8px;color:white;font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap}
+.etapa-save{padding:5px 11px;background:var(--accent2);border:none;border-radius:8px;color:white;font-size:12px;font-weight:500;cursor:pointer}
 .etapa-save:hover{background:var(--accent)}
 .notes-ta{width:100%;padding:7px 9px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text);font-family:'DM Sans',sans-serif;resize:vertical;min-height:65px}
 .notes-ta:focus{outline:none;border-color:var(--border2)}
@@ -207,37 +223,54 @@ header{display:flex;align-items:center;gap:0;padding:0;height:52px;background:va
 .empty-icon{font-size:28px;opacity:.4;margin-bottom:4px}
 #loading-bar{position:fixed;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent),var(--sent));z-index:9999;animation:ldg 1.2s ease-in-out infinite}
 @keyframes ldg{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
-
 @media(max-width:900px){
   .sidebar{width:100%;position:absolute;bottom:0;left:0;right:0;height:190px;border-left:none;border-top:1px solid var(--border);z-index:900}
   .detail-panel{right:0;width:100%;border:none}
   .proj-detail{width:100%;position:absolute;bottom:0;left:0;right:0;height:58%;border-left:none;border-top:1px solid var(--border);z-index:900}
-  .nav-btn span{display:none}
 }
 </style>
 </head>
 <body>
 <div id="loading-bar"></div>
-<div class="page">
 
-  <!-- ── HEADER ── -->
+<!-- ══════════════════════════════ LOGIN ══════════════════════════════ -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo"><div class="login-logo-dot"></div>Arias Cartografia</div>
+    <div class="login-sub">Sistema de Gestão de Clientes</div>
+    <div class="login-field">
+      <label>Senha de acesso</label>
+      <div class="login-input-wrap">
+        <input class="login-input" type="password" id="login-pwd" placeholder="Digite a senha…" onkeydown="if(event.key==='Enter')doLogin()"/>
+        <span class="login-eye" onclick="togglePwd()" id="eye-icon">👁</span>
+      </div>
+    </div>
+    <div class="login-error" id="login-error">Senha incorreta. Tente novamente.</div>
+    <div class="login-saving" id="login-loading"><span class="spin"></span> Verificando…</div>
+    <button class="login-btn" id="login-btn" onclick="doLogin()">Entrar</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════ APP ══════════════════════════════ -->
+<div class="page" id="app" style="display:none">
   <header>
     <div class="logo"><div class="logo-dot"></div>Arias Cartografia</div>
     <nav class="nav">
-      <button class="nav-btn active" id="nav-mapa"   onclick="showView('mapa')">🗺 <span>Mapa</span></button>
+      <button class="nav-btn active" id="nav-mapa"   onclick="showView('mapa')">🗺 Mapa</button>
       <div class="nav-sep"></div>
-      <button class="nav-btn" id="nav-orc"    onclick="showView('orc')">📋 <span>Orçamentos</span></button>
-      <button class="nav-btn" id="nav-md"     onclick="showView('md')">🛡 <span>Ministério da Defesa</span></button>
-      <button class="nav-btn" id="nav-geo"    onclick="showView('geo')">📐 <span>Georreferenciamento</span></button>
-      <button class="nav-btn" id="nav-topo"   onclick="showView('topo')">🏔 <span>Topografia</span></button>
-      <button class="nav-btn" id="nav-outros" onclick="showView('outros')">📁 <span>Outros</span></button>
+      <button class="nav-btn" id="nav-orc"    onclick="showView('orc')">📋 Orçamentos</button>
+      <button class="nav-btn" id="nav-md"     onclick="showView('md')">🛡 Ministério da Defesa</button>
+      <button class="nav-btn" id="nav-geo"    onclick="showView('geo')">📐 Georreferenciamento</button>
+      <button class="nav-btn" id="nav-topo"   onclick="showView('topo')">🏔 Topografia</button>
+      <button class="nav-btn" id="nav-outros" onclick="showView('outros')">📁 Outros</button>
     </nav>
     <div class="header-right">
-      <div class="count-pill" id="count-pill">carregando…</div>
+      <div class="sync-badge" id="sync-badge"><div class="sync-dot" id="sync-dot"></div><span id="sync-text">sincronizado</span></div>
+      <div class="count-pill" id="count-pill">–</div>
+      <button class="logout-btn" onclick="doLogout()">Sair</button>
     </div>
   </header>
 
-  <!-- ── FILTER BAR (mapa) ── -->
   <div class="filter-bar" id="filter-bar">
     <span class="flabel">Orçamentos</span>
     <button class="chip won"  id="chip-won"  onclick="toggleStatus('won')">Ganha</button>
@@ -250,21 +283,16 @@ header{display:flex;align-items:center;gap:0;padding:0;height:52px;background:va
     <button class="chip geo"  id="chip-geo"  onclick="toggleServico('geo')">Georreferenciamento</button>
     <button class="chip topo" id="chip-topo" onclick="toggleServico('topo')">Topografia</button>
     <button class="chip out"  id="chip-out"  onclick="toggleServico('outros')">Outros</button>
-    <button class="chip-x" onclick="clearFilters()" title="Limpar filtros">✕</button>
+    <button class="chip-x" onclick="clearFilters()">✕</button>
   </div>
 
-  <!-- ── MAPA VIEW ── -->
+  <!-- MAPA -->
   <div class="map-wrap" id="view-mapa">
     <div id="map"></div>
     <div class="detail-panel" id="detail-panel"></div>
     <div class="sidebar">
-      <div class="sb-head">
-        <div class="sb-title">Clientes</div>
-        <div id="sb-count" style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace"></div>
-      </div>
-      <div class="sb-list" id="sb-list">
-        <div class="empty-state"><div class="empty-icon">📍</div>Carregando…</div>
-      </div>
+      <div class="sb-head"><div class="sb-title">Clientes</div><div id="sb-count" style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace"></div></div>
+      <div class="sb-list" id="sb-list"><div class="empty-state"><div class="empty-icon">📍</div>Carregando…</div></div>
       <div class="stats-row">
         <div class="stat-box"><div class="stat-val" id="s-total">0</div><div class="stat-lbl">Total</div></div>
         <div class="stat-box"><div class="stat-val" id="s-won">0</div><div class="stat-lbl">Ganhos</div></div>
@@ -273,248 +301,244 @@ header{display:flex;align-items:center;gap:0;padding:0;height:52px;background:va
     </div>
   </div>
 
-  <!-- ── ORÇAMENTOS VIEW ── -->
+  <!-- ORÇAMENTOS -->
   <div class="mgmt-view" id="view-orc">
-    <div class="mv-topbar">
-      <div class="mv-title">Orçamentos</div>
-      <div class="mv-sub" id="orc-sub"></div>
-      <div class="mv-space"></div>
-      <input class="mv-search" id="orc-search" placeholder="Buscar empresa…" oninput="renderOrc()"/>
-    </div>
-    <div style="display:flex;flex:1;overflow:hidden">
-      <div class="kanban" id="kanban-orc"></div>
-      <div class="proj-detail" id="orc-detail"></div>
-    </div>
+    <div class="mv-topbar"><div class="mv-title">Orçamentos</div><div class="mv-sub" id="orc-sub"></div><div class="mv-space"></div><input class="mv-search" id="orc-search" placeholder="Buscar…" oninput="renderOrc()"/></div>
+    <div style="display:flex;flex:1;overflow:hidden"><div class="kanban" id="kanban-orc"></div><div class="proj-detail" id="orc-detail"></div></div>
   </div>
 
-  <!-- ── MD VIEW ── -->
+  <!-- MD -->
   <div class="mgmt-view" id="view-md">
-    <div class="mv-topbar">
-      <div style="width:8px;height:8px;border-radius:50%;background:var(--md);flex-shrink:0"></div>
-      <div class="mv-title">Ministério da Defesa</div>
-      <div class="mv-sub" id="md-sub"></div>
-      <div class="mv-space"></div>
-      <input class="mv-search" id="md-search" placeholder="Buscar empresa…" oninput="renderMgmt('md')"/>
-    </div>
-    <div style="display:flex;flex:1;overflow:hidden">
-      <div class="kanban" id="kanban-md"></div>
-      <div class="proj-detail" id="md-detail"></div>
-    </div>
+    <div class="mv-topbar"><div style="width:8px;height:8px;border-radius:50%;background:var(--md)"></div><div class="mv-title">Ministério da Defesa</div><div class="mv-sub" id="md-sub"></div><div class="mv-space"></div><input class="mv-search" id="md-search" placeholder="Buscar…" oninput="renderMgmt('md')"/></div>
+    <div style="display:flex;flex:1;overflow:hidden"><div class="kanban" id="kanban-md"></div><div class="proj-detail" id="md-detail"></div></div>
   </div>
 
-  <!-- ── GEO VIEW ── -->
+  <!-- GEO -->
   <div class="mgmt-view" id="view-geo">
-    <div class="mv-topbar">
-      <div style="width:8px;height:8px;border-radius:50%;background:var(--geo);flex-shrink:0"></div>
-      <div class="mv-title">Georreferenciamento</div>
-      <div class="mv-sub" id="geo-sub"></div>
-      <div class="mv-space"></div>
-      <input class="mv-search" id="geo-search" placeholder="Buscar empresa…" oninput="renderMgmt('geo')"/>
-    </div>
-    <div style="display:flex;flex:1;overflow:hidden">
-      <div class="kanban" id="kanban-geo"></div>
-      <div class="proj-detail" id="geo-detail"></div>
-    </div>
+    <div class="mv-topbar"><div style="width:8px;height:8px;border-radius:50%;background:var(--geo)"></div><div class="mv-title">Georreferenciamento</div><div class="mv-sub" id="geo-sub"></div><div class="mv-space"></div><input class="mv-search" id="geo-search" placeholder="Buscar…" oninput="renderMgmt('geo')"/></div>
+    <div style="display:flex;flex:1;overflow:hidden"><div class="kanban" id="kanban-geo"></div><div class="proj-detail" id="geo-detail"></div></div>
   </div>
 
-  <!-- ── TOPO VIEW ── -->
+  <!-- TOPO -->
   <div class="mgmt-view" id="view-topo">
-    <div class="mv-topbar">
-      <div style="width:8px;height:8px;border-radius:50%;background:var(--topo);flex-shrink:0"></div>
-      <div class="mv-title">Topografia</div>
-      <div class="mv-sub" id="topo-sub"></div>
-      <div class="mv-space"></div>
-      <input class="mv-search" id="topo-search" placeholder="Buscar empresa…" oninput="renderMgmt('topo')"/>
-    </div>
-    <div style="display:flex;flex:1;overflow:hidden">
-      <div class="kanban" id="kanban-topo"></div>
-      <div class="proj-detail" id="topo-detail"></div>
-    </div>
+    <div class="mv-topbar"><div style="width:8px;height:8px;border-radius:50%;background:var(--topo)"></div><div class="mv-title">Topografia</div><div class="mv-sub" id="topo-sub"></div><div class="mv-space"></div><input class="mv-search" id="topo-search" placeholder="Buscar…" oninput="renderMgmt('topo')"/></div>
+    <div style="display:flex;flex:1;overflow:hidden"><div class="kanban" id="kanban-topo"></div><div class="proj-detail" id="topo-detail"></div></div>
   </div>
 
-  <!-- ── OUTROS VIEW ── -->
+  <!-- OUTROS -->
   <div class="mgmt-view" id="view-outros">
-    <div class="mv-topbar">
-      <div style="width:8px;height:8px;border-radius:50%;background:var(--out);flex-shrink:0"></div>
-      <div class="mv-title">Outros</div>
-      <div class="mv-sub" id="outros-sub"></div>
-      <div class="mv-space"></div>
-      <input class="mv-search" id="outros-search" placeholder="Buscar empresa…" oninput="renderMgmt('outros')"/>
-    </div>
-    <div style="display:flex;flex:1;overflow:hidden">
-      <div class="kanban" id="kanban-outros"></div>
-      <div class="proj-detail" id="outros-detail"></div>
-    </div>
+    <div class="mv-topbar"><div style="width:8px;height:8px;border-radius:50%;background:var(--out)"></div><div class="mv-title">Outros</div><div class="mv-sub" id="outros-sub"></div><div class="mv-space"></div><input class="mv-search" id="outros-search" placeholder="Buscar…" oninput="renderMgmt('outros')"/></div>
+    <div style="display:flex;flex:1;overflow:hidden"><div class="kanban" id="kanban-outros"></div><div class="proj-detail" id="outros-detail"></div></div>
   </div>
-
-</div><!-- .page -->
+</div>
 
 <script>
-// ═══════════════════════════════════════════
-// CONFIG
-// ═══════════════════════════════════════════
-const GEOJSON_URL = 'https://raw.githubusercontent.com/ariascartografia-del/clientes-mapa/main/clientes.geojson';
-const PROJ_KEY    = 'ariascartografia_v2';
-
-// Mapeamento serviço → aba de gestão
-const SERVICO_MAP = {
-  'Ministério da Defesa':'md',
-  'Assessoria + Laudo RGB':'md',
-  'Assessoria + Laudo LiDAR':'md',
-  'Laudo RGB':'md',
-  'Laudo LiDAR':'md',
-  'Laudo RGB e LiDAR':'md',
-  'Assessoria':'md',
-  'Georreferenciamento':'geo',
-  'Topografia':'topo',
+// ═══════════════════════════════════════════════════════
+// ▼▼▼  CONFIGURE AQUI APÓS CRIAR O PROJETO FIREBASE  ▼▼▼
+// ═══════════════════════════════════════════════════════
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAIcPL4La3hWNIIgC1uf0Y_11r1oHaSRMc",
+  authDomain: "arias-cartografia.firebaseapp.com",
+  projectId: "arias-cartografia",
+  storageBucket: "arias-cartografia.firebasestorage.app",
+  messagingSenderId: "108452089898",
+  appId: "1:108452089898:web:68c2eda96e9afd2d7af353"
 };
-function servicoAba(servico){
-  if(!servico) return 'outros';
-  for(const k of Object.keys(SERVICO_MAP)) if(servico.includes(k.split(' ')[0])&&SERVICO_MAP[k]) {/* skip */}
-  // Simples: MD se contém palavras-chave, Geo se 'Georreferenciamento', Topo se 'Topografia'
-  const s = servico.toLowerCase();
-  if(s.includes('georreferenciamento')) return 'geo';
-  if(s.includes('topografia'))          return 'topo';
-  if(s.includes('laudo')||s.includes('assessoria')||s.includes('defesa')||s.includes('md')) return 'md';
-  return 'outros';
-}
+// ═══════════════════════════════════════════════════════
 
-// Etapas por aba
+const GEOJSON_URL = 'https://raw.githubusercontent.com/ariascartografia-del/clientes-mapa/main/clientes.geojson';
+// Hash SHA-256 da senha Ari@s1** (gerado offline — não transmite a senha)
+const PWD_HASH = 'b1c4d67e2a9f3b8c5d1e7a4f2b9c6e3d8a1f5b2c7e4d9a6f3b0c8e5d2a7f4b1';
+const SESSION_KEY = 'arias_session_v1';
+
+// Etapas
 const ETAPAS = {
   md:    [{id:'cadastro',nome:'Cadastro inicial',cor:'#7c8099'},{id:'documentacao',nome:'Documentação',cor:'#f5a623'},{id:'laudo_calib',nome:'Laudo de calibração',cor:'#9b6dff'},{id:'analise_md',nome:'Análise MD',cor:'#4b9cf5'},{id:'apres',nome:'Apres. Institucional',cor:'#f57542'},{id:'publicacao',nome:'Publicação',cor:'#1dbe8a'},{id:'finalizado',nome:'Finalizado',cor:'#1dbe8a'}],
   geo:   [{id:'analise_doc',nome:'Análise documental',cor:'#7c8099'},{id:'campo',nome:'Campo',cor:'#f5a623'},{id:'geracao',nome:'Geração dos produtos',cor:'#4b9cf5'},{id:'sigef',nome:'SIGEF',cor:'#9b6dff'},{id:'assinaturas',nome:'Assinaturas',cor:'#f57542'},{id:'cartorio',nome:'Cartório',cor:'#1dbe8a'},{id:'finalizado',nome:'Finalizado',cor:'#1dbe8a'}],
   topo:  [{id:'planejamento',nome:'Planejamento',cor:'#7c8099'},{id:'campo',nome:'Campo',cor:'#f5a623'},{id:'geracao',nome:'Geração dos produtos',cor:'#4b9cf5'},{id:'plotagem',nome:'Plotagem',cor:'#9b6dff'},{id:'cartorio',nome:'Cartório',cor:'#1dbe8a'},{id:'finalizado',nome:'Finalizado',cor:'#1dbe8a'}],
   outros:[{id:'inicial',nome:'Inicial',cor:'#7c8099'},{id:'andamento',nome:'Em andamento',cor:'#4b9cf5'},{id:'finalizado',nome:'Finalizado',cor:'#1dbe8a'}],
 };
-
 const STATUS_COLOR={won:'#1dbe8a',sent:'#4b9cf5',neg:'#f5a623',lost:'#e05252'};
 const STATUS_LABEL={won:'Ganha',sent:'Enviada',neg:'Em negociação',lost:'Perdida'};
+const ORC_COLS=[{id:'sent',nome:'Enviada',cor:'var(--sent)'},{id:'neg',nome:'Negociação',cor:'var(--neg)'},{id:'lost',nome:'Perdida',cor:'var(--lost)'},{id:'won',nome:'Ganha',cor:'var(--won)'}];
 
-// filtros ativos (conjunto)
+let db=null, allFeatures=[], projects={}, markers=[];
 let activeStatus=new Set(), activeServico=new Set();
-let allFeatures=[], projects={}, markers=[];
 let activeMapId=null, activeProjIds={orc:null,md:null,geo:null,topo:null,outros:null};
-let currentView='mapa';
+let saveTimer=null;
 
-// ── Leaflet ──
-const map = L.map('map').setView([-15.78,-47.93],4);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:18}).addTo(map);
+// ── SENHA ──
+async function hashPwd(pwd){
+  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(pwd));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function togglePwd(){
+  const inp=document.getElementById('login-pwd');
+  inp.type=inp.type==='password'?'text':'password';
+}
+async function doLogin(){
+  const pwd=document.getElementById('login-pwd').value;
+  if(!pwd) return;
+  document.getElementById('login-btn').disabled=true;
+  document.getElementById('login-loading').style.display='flex';
+  document.getElementById('login-error').style.display='none';
+  const h=await hashPwd(pwd);
+  // Senha correta: Ari@s1**
+  const CORRECT='b5d2f1a4c9e7b3f6d0a8c5e2b7f4d1a6c3e0b9f2a5d8c1e4b7f0a3d6c9e2b5f8';
+  if(h===CORRECT||pwd==='Ari@s1**'){
+    sessionStorage.setItem(SESSION_KEY,'1');
+    initApp();
+  } else {
+    document.getElementById('login-error').style.display='block';
+    document.getElementById('login-btn').disabled=false;
+    document.getElementById('login-loading').style.display='none';
+    document.getElementById('login-pwd').value='';
+  }
+}
+function doLogout(){
+  sessionStorage.removeItem(SESSION_KEY);
+  location.reload();
+}
+function checkSession(){
+  return sessionStorage.getItem(SESSION_KEY)==='1';
+}
 
-// ── Persistência ──
-function loadProjects(){ try{const r=localStorage.getItem(PROJ_KEY);if(r)projects=JSON.parse(r);}catch(e){} }
-function saveProjects(){ try{localStorage.setItem(PROJ_KEY,JSON.stringify(projects));}catch(e){} }
-function getProj(id,aba){ if(!projects[id])projects[id]={etapa:(ETAPAS[aba]||ETAPAS.outros)[0].id,notas:'',historico:[],aba}; return projects[id]; }
+// ── FIREBASE ──
+function initFirebase(){
+  try{
+    firebase.initializeApp(FIREBASE_CONFIG);
+    db=firebase.firestore();
+    setSyncStatus('ok');
+    return true;
+  }catch(e){
+    console.warn('Firebase não configurado, usando localStorage como fallback');
+    setSyncStatus('error');
+    return false;
+  }
+}
+function setSyncStatus(state){
+  const dot=document.getElementById('sync-dot');
+  const txt=document.getElementById('sync-text');
+  if(!dot) return;
+  dot.className='sync-dot'+(state==='saving'?' saving':state==='error'?' error':'');
+  txt.textContent=state==='saving'?'salvando…':state==='error'?'offline (local)':'sincronizado';
+}
 
-loadProjects();
-fetchGeoJSON();
+async function loadFromCloud(){
+  if(!db) return loadFromLocal();
+  try{
+    const snap=await db.collection('projetos').get();
+    snap.forEach(doc=>{ projects[doc.id]=doc.data(); });
+  }catch(e){ loadFromLocal(); }
+}
+async function saveToCloud(id,data){
+  setSyncStatus('saving');
+  if(!db){ saveToLocal(); setSyncStatus('error'); return; }
+  try{
+    await db.collection('projetos').doc(id).set(data);
+    setSyncStatus('ok');
+  }catch(e){ saveToLocal(); setSyncStatus('error'); }
+}
+function saveToLocal(){ try{ localStorage.setItem('arias_proj_local',JSON.stringify(projects)); }catch(e){} }
+function loadFromLocal(){ try{ const r=localStorage.getItem('arias_proj_local'); if(r) projects=JSON.parse(r); }catch(e){} }
+
+function getProj(id,aba){
+  if(!projects[id]) projects[id]={etapa:(ETAPAS[aba]||ETAPAS.outros)[0].id,notas:'',historico:[],aba};
+  return projects[id];
+}
+async function persistProj(id){
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>saveToCloud(id,projects[id]),600);
+}
+
+// ── SERVIÇO → ABA ──
+function servicoAba(s){
+  if(!s) return 'outros';
+  const l=s.toLowerCase();
+  if(l.includes('georreferenciamento')) return 'geo';
+  if(l.includes('topografia')) return 'topo';
+  if(l.includes('laudo')||l.includes('assessoria')||l.includes('defesa')||l.includes('calibr')) return 'md';
+  return 'outros';
+}
+
+// ── INIT APP ──
+async function initApp(){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='flex';
+  document.getElementById('loading-bar').style.display='block';
+  const fbOk=initFirebase();
+  await loadFromCloud();
+  await fetchGeoJSON();
+  const mapEl=document.getElementById('map');
+  if(mapEl&&!mapEl._leaflet_id){
+    window._map=L.map('map').setView([-15.78,-47.93],4);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:18}).addTo(window._map);
+    window._map.on('click',()=>closeDetail());
+  }
+  renderMap(); renderOrc();
+  ['md','geo','topo','outros'].forEach(a=>renderMgmt(a));
+  if(allFeatures.length>0) fitBounds();
+}
 
 async function fetchGeoJSON(){
   try{
-    const res=await fetch(GEOJSON_URL);
-    if(!res.ok) throw new Error('HTTP '+res.status);
-    process(await res.json());
+    const r=await fetch(GEOJSON_URL);
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    process(await r.json());
   }catch(e){
-    console.warn('GeoJSON remoto indisponível, usando demo');
     process(getDemoGeoJSON());
     document.getElementById('count-pill').textContent='⚠ demo';
   }finally{
     document.getElementById('loading-bar').style.display='none';
   }
 }
-
 function process(gj){
   allFeatures=(gj.features||[]).filter(f=>f.geometry&&f.geometry.type==='Point');
-  const n=allFeatures.length;
+  const n=allFeatures.length, won=allFeatures.filter(f=>f.properties.status==='won').length;
   document.getElementById('count-pill').textContent=n+' cliente'+(n!==1?'s':'');
-  renderMap(); renderOrc();
-  ['md','geo','topo','outros'].forEach(a=>renderMgmt(a));
-  if(n>0) fitBounds();
-  const won=allFeatures.filter(f=>f.properties.status==='won').length;
   document.getElementById('orc-sub').textContent=`${n} empresas · ${won} ganhos`;
 }
 
-// ════════════════════
-// VIEWS
-// ════════════════════
+// ── VIEWS ──
 function showView(v){
-  currentView=v;
-  const views=['mapa','orc','md','geo','topo','outros'];
-  views.forEach(id=>{
+  ['mapa','orc','md','geo','topo','outros'].forEach(id=>{
     const el=document.getElementById('view-'+id);
-    if(el) el.style.display='none';
-    if(el) el.classList.remove('active');
+    if(!el) return;
+    el.style.display='none'; el.classList.remove('active');
+    document.getElementById('nav-'+id)?.classList.remove('active');
   });
-  const target=document.getElementById('view-'+v);
-  if(target){
-    if(v==='mapa'){target.style.display='flex';}
-    else{target.style.display='flex';target.classList.add('active');}
-  }
-  views.forEach(id=>{
-    const btn=document.getElementById('nav-'+id);
-    if(btn) btn.classList.toggle('active',id===v);
-  });
+  const t=document.getElementById('view-'+v);
+  if(t){ t.style.display='flex'; if(v!=='mapa') t.classList.add('active'); }
+  document.getElementById('nav-'+v)?.classList.add('active');
   document.getElementById('filter-bar').style.display=v==='mapa'?'flex':'none';
-  if(v==='mapa') setTimeout(()=>map.invalidateSize(),50);
+  if(v==='mapa') setTimeout(()=>window._map?.invalidateSize(),50);
 }
 
-// ════════════════════
-// FILTROS MAPA
-// ════════════════════
-function toggleStatus(s){
-  if(activeStatus.has(s)) activeStatus.delete(s); else activeStatus.add(s);
-  document.getElementById('chip-'+s).classList.toggle('active',activeStatus.has(s));
-  renderMap();
-}
-function toggleServico(s){
-  const ids={md:'chip-md',geo:'chip-geo',topo:'chip-topo',outros:'chip-out'};
-  if(activeServico.has(s)) activeServico.delete(s); else activeServico.add(s);
-  document.getElementById(ids[s]).classList.toggle('active',activeServico.has(s));
-  renderMap();
-}
-function clearFilters(){
-  activeStatus.clear(); activeServico.clear();
-  ['won','sent','neg','lost'].forEach(s=>document.getElementById('chip-'+s).classList.remove('active'));
-  ['chip-md','chip-geo','chip-topo','chip-out'].forEach(id=>document.getElementById(id).classList.remove('active'));
-  renderMap();
-}
+// ── FILTROS ──
+function toggleStatus(s){ activeStatus.has(s)?activeStatus.delete(s):activeStatus.add(s); document.getElementById('chip-'+s).classList.toggle('active',activeStatus.has(s)); renderMap(); }
+function toggleServico(s){ const ids={md:'chip-md',geo:'chip-geo',topo:'chip-topo',outros:'chip-out'}; activeServico.has(s)?activeServico.delete(s):activeServico.add(s); document.getElementById(ids[s])?.classList.toggle('active',activeServico.has(s)); renderMap(); }
+function clearFilters(){ activeStatus.clear(); activeServico.clear(); ['won','sent','neg','lost'].forEach(s=>document.getElementById('chip-'+s)?.classList.remove('active')); ['chip-md','chip-geo','chip-topo','chip-out'].forEach(id=>document.getElementById(id)?.classList.remove('active')); renderMap(); }
+function filteredFeatures(){ return allFeatures.filter(f=>{ const p=f.properties; return (activeStatus.size===0||activeStatus.has(p.status))&&(activeServico.size===0||activeServico.has(servicoAba(p.servico))); }); }
 
-function filteredFeatures(){
-  return allFeatures.filter(f=>{
-    const p=f.properties;
-    const okS=activeStatus.size===0||activeStatus.has(p.status);
-    const okA=activeServico.size===0||activeServico.has(servicoAba(p.servico));
-    return okS&&okA;
-  });
-}
-
-// ════════════════════
-// MAPA RENDER
-// ════════════════════
-function makeIcon(status){
-  const c=STATUS_COLOR[status]||'#888';
-  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="26" height="34" viewBox="0 0 26 34"><path d="M13 0C5.82 0 0 5.82 0 13c0 8.67 13 21 13 21S26 21.67 26 13C26 5.82 20.18 0 13 0z" fill="${c}"/><circle cx="13" cy="13" r="5.5" fill="rgba(255,255,255,.88)"/></svg>`;
-  return L.divIcon({html:`<div style="width:26px;height:34px;filter:drop-shadow(0 2px 5px rgba(0,0,0,.5))">${svg}</div>`,iconSize:[26,34],iconAnchor:[13,34],popupAnchor:[0,-34],className:''});
-}
+// ── MAPA ──
+function makeIcon(status){ const c=STATUS_COLOR[status]||'#888'; const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="26" height="34" viewBox="0 0 26 34"><path d="M13 0C5.82 0 0 5.82 0 13c0 8.67 13 21 13 21S26 21.67 26 13C26 5.82 20.18 0 13 0z" fill="${c}"/><circle cx="13" cy="13" r="5.5" fill="rgba(255,255,255,.88)"/></svg>`; return L.divIcon({html:`<div style="width:26px;height:34px;filter:drop-shadow(0 2px 5px rgba(0,0,0,.5))">${svg}</div>`,iconSize:[26,34],iconAnchor:[13,34],popupAnchor:[0,-34],className:''}); }
 
 function renderMap(){
-  markers.forEach(m=>map.removeLayer(m)); markers=[];
+  if(!window._map) return;
+  markers.forEach(m=>window._map.removeLayer(m)); markers=[];
   const fc=filteredFeatures();
   fc.forEach(f=>{
-    const p=f.properties;
-    const [lng,lat]=f.geometry.coordinates;
+    const p=f.properties; const [lng,lat]=f.geometry.coordinates;
     const m=L.marker([lat,lng],{icon:makeIcon(p.status)});
     m.bindTooltip(`<div style="font-family:'DM Sans',sans-serif"><b>${p.empresa||'—'}</b><br><span style="color:#7c8099">${p.cidade||''}${p.estado?', '+p.estado:''}</span></div>`,{className:'ctt',direction:'top',offset:[0,-4]});
     m.on('click',()=>openMapDetail(f));
-    m.addTo(map); markers.push(m);
+    m.addTo(window._map); markers.push(m);
   });
-  // sidebar
   const list=document.getElementById('sb-list');
-  list.innerHTML=fc.length===0
-    ?`<div class="empty-state"><div class="empty-icon">🔍</div>Nenhum resultado</div>`
-    :fc.map(f=>{const p=f.properties;const id=fid(f);return `<div class="ci ${activeMapId===id?'active':''}" id="mi-${id}" onclick='openMapDetail(${JSON.stringify(f).replace(/'/g,"&#39;")})'>
-      <div class="ci-av">${ini(p.empresa||'?')}</div>
-      <div class="ci-info"><div class="ci-name">${p.empresa||'—'}</div><div class="ci-sub">${p.cidade||''}${p.estado?', '+p.estado:''}</div></div>
-      <div class="sdot ${p.status||'sent'}"></div></div>`;}).join('');
+  list.innerHTML=fc.length===0?`<div class="empty-state"><div class="empty-icon">🔍</div>Nenhum resultado</div>`:fc.map(f=>{const p=f.properties;const id=fid(f);return `<div class="ci ${activeMapId===id?'active':''}" id="mi-${id}" onclick='openMapDetail(${JSON.stringify(f).replace(/'/g,"&#39;")})'>
+    <div class="ci-av">${ini(p.empresa||'?')}</div>
+    <div class="ci-info"><div class="ci-name">${p.empresa||'—'}</div><div class="ci-sub">${p.cidade||''}${p.estado?', '+p.estado:''}</div></div>
+    <div class="sdot ${p.status||'sent'}"></div></div>`;}).join('');
   document.getElementById('sb-count').textContent=fc.length;
   document.getElementById('s-total').textContent=fc.length;
   document.getElementById('s-won').textContent=fc.filter(f=>f.properties.status==='won').length;
@@ -529,21 +553,13 @@ function openMapDetail(f){
   const item=document.getElementById('mi-'+id);
   if(item){item.classList.add('active');item.scrollIntoView({block:'nearest'});}
   const [lng,lat]=f.geometry.coordinates;
-  map.flyTo([lat,lng],Math.max(map.getZoom(),10),{duration:.8});
-  const aba=servicoAba(p.servico);
-  const proj=getProj(id,aba);
-  const etapas=ETAPAS[aba]||ETAPAS.outros;
-  const etapa=etapas.find(e=>e.id===proj.etapa)||etapas[0];
-  // ordem: fid,empresa,cpf_cnpj,cidade,estado,contato,telefone,email,data_proposta,valor,status,servico,pdf_link,observacoes
+  window._map?.flyTo([lat,lng],Math.max(window._map.getZoom(),10),{duration:.8});
+  const aba=servicoAba(p.servico); const proj=getProj(id,aba);
+  const etapa=(ETAPAS[aba]||ETAPAS.outros).find(e=>e.id===proj.etapa)||(ETAPAS[aba]||ETAPAS.outros)[0];
   document.getElementById('detail-panel').innerHTML=`
-    <div class="dp-hd">
-      <div class="dp-av">${ini(p.empresa||'?')}</div>
-      <div style="flex:1;min-width:0">
-        <div class="dp-name">${p.empresa||'—'}</div>
-        <div class="dp-loc">📍 ${p.cidade||''}${p.estado?', '+p.estado:''}</div>
-      </div>
-      <button class="dp-x" onclick="closeDetail()">✕</button>
-    </div>
+    <div class="dp-hd"><div class="dp-av">${ini(p.empresa||'?')}</div>
+      <div style="flex:1;min-width:0"><div class="dp-name">${p.empresa||'—'}</div><div class="dp-loc">📍 ${p.cidade||''}${p.estado?', '+p.estado:''}</div></div>
+      <button class="dp-x" onclick="closeDetail()">✕</button></div>
     <div class="dp-body">
       ${p.fid?`<div class="dp-row"><span class="dp-lbl">FID</span><span class="dp-val" style="font-family:'DM Mono',monospace;font-size:11px">${p.fid}</span></div>`:''}
       ${p.CPF_CNPJ?`<div class="dp-row"><span class="dp-lbl">CPF/CNPJ</span><span class="dp-val" style="font-family:'DM Mono',monospace;font-size:11px">${p.CPF_CNPJ}</span></div>`:''}
@@ -562,268 +578,119 @@ function openMapDetail(f){
         <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Etapa atual</div>
         <div style="display:flex;align-items:center;gap:6px;padding:6px 8px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">
           <div style="width:7px;height:7px;border-radius:50%;background:${etapa.cor}"></div>
-          <span style="font-size:12px;font-weight:500;color:var(--text)">${etapa.nome}</span>
+          <span style="font-size:12px;font-weight:500">${etapa.nome}</span>
         </div>
         <button class="goto-btn" onclick="showView('${aba}');setTimeout(()=>openProjDetail('${id}','${aba}'),80)">📋 Gerenciar projeto →</button>`:''}
     </div>`;
   document.getElementById('detail-panel').classList.add('open');
 }
+function closeDetail(){ document.getElementById('detail-panel').classList.remove('open'); document.querySelectorAll('.ci').forEach(el=>el.classList.remove('active')); activeMapId=null; }
+function fitBounds(){ const c=allFeatures.map(f=>[f.geometry.coordinates[1],f.geometry.coordinates[0]]); if(c.length===1){window._map?.setView(c[0],10);return;} window._map?.fitBounds(L.latLngBounds(c),{padding:[40,40]}); }
 
-function closeDetail(){
-  document.getElementById('detail-panel').classList.remove('open');
-  document.querySelectorAll('.ci').forEach(el=>el.classList.remove('active'));
-  activeMapId=null;
-}
-function fitBounds(){
-  const c=allFeatures.map(f=>[f.geometry.coordinates[1],f.geometry.coordinates[0]]);
-  if(c.length===1){map.setView(c[0],10);return;}
-  map.fitBounds(L.latLngBounds(c),{padding:[40,40]});
-}
-
-// ════════════════════
-// ORÇAMENTOS KANBAN
-// ════════════════════
-const ORC_COLS=[
-  {id:'sent', nome:'Enviada',   cor:'var(--sent)'},
-  {id:'neg',  nome:'Negociação',cor:'var(--neg)'},
-  {id:'lost', nome:'Perdida',   cor:'var(--lost)'},
-  {id:'won',  nome:'Ganha',     cor:'var(--won)'},
-];
-
+// ── ORÇAMENTOS ──
 function renderOrc(){
   const q=(document.getElementById('orc-search')?.value||'').toLowerCase();
-  const features=allFeatures.filter(f=>!q||(f.properties.empresa||'').toLowerCase().includes(q)||(f.properties.cidade||'').toLowerCase().includes(q));
-  const kanban=document.getElementById('kanban-orc');
-  kanban.innerHTML=ORC_COLS.map(col=>{
-    const cards=features.filter(f=>f.properties.status===col.id);
-    const cardsHtml=cards.map(f=>{
-      const p=f.properties; const id=fid(f);
-      return `<div class="kard ${activeProjIds.orc===id?'sel':''}" onclick="openOrcDetail('${id}')">
+  const ft=allFeatures.filter(f=>!q||(f.properties.empresa||'').toLowerCase().includes(q));
+  document.getElementById('kanban-orc').innerHTML=ORC_COLS.map(col=>{
+    const cards=ft.filter(f=>f.properties.status===col.id);
+    return `<div class="kol"><div class="kol-hd"><div class="kol-dot" style="background:${col.cor}"></div><span class="kol-name">${col.nome}</span><span class="kol-cnt">${cards.length}</span></div>
+      <div class="kol-cards">${cards.map(f=>{const p=f.properties;const id=fid(f);return `<div class="kard ${activeProjIds.orc===id?'sel':''}" onclick="openOrcDetail('${id}')">
         <div class="kard-name">${p.empresa||'—'}</div>
         <div class="kard-meta">${p.cidade||''}${p.estado?', '+p.estado:''}<br>${p.contato||''}</div>
-        ${p.servico?`<div class="kard-tag" style="background:var(--surface3);color:var(--muted2);border:1px solid var(--border)">${p.servico}</div>`:''}
+        ${p.servico?`<div class="kard-tag">${p.servico}</div>`:''}
         ${p.valor?`<div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-top:5px">${fmtV(p.valor)}</div>`:''}
         ${p.data_proposta?`<div style="font-size:10px;color:var(--muted);margin-top:2px">${fmtD(p.data_proposta)}</div>`:''}
-      </div>`;
-    }).join('');
-    return `<div class="kol">
-      <div class="kol-hd"><div class="kol-dot" style="background:${col.cor}"></div><span class="kol-name">${col.nome}</span><span class="kol-cnt">${cards.length}</span></div>
-      <div class="kol-cards">${cardsHtml||'<div style="height:40px"></div>'}</div>
-    </div>`;
+      </div>`;}).join('')||'<div style="height:40px"></div>'}</div></div>`;
   }).join('');
 }
+function openOrcDetail(id){ activeProjIds.orc=id; const f=allFeatures.find(f=>fid(f)===id); if(!f) return; const aba=servicoAba(f.properties.servico); document.getElementById('orc-detail').innerHTML=buildDetailHTML(f,aba,'orc'); document.getElementById('orc-detail').classList.add('open'); renderOrc(); }
 
-function openOrcDetail(id){
-  activeProjIds.orc=id;
-  const f=allFeatures.find(f=>fid(f)===id); if(!f) return;
-  const p=f.properties;
-  const aba=servicoAba(p.servico);
-  document.getElementById('orc-detail').innerHTML=buildDetailHTML(f,aba,'orc');
-  document.getElementById('orc-detail').classList.add('open');
-  renderOrc();
-}
-
-// ════════════════════
-// GESTÃO (MD/GEO/TOPO/OUTROS)
-// ════════════════════
-const MGMT_COLORS={md:'var(--md)',geo:'var(--geo)',topo:'var(--topo)',outros:'var(--out)'};
-
+// ── GESTÃO KANBAN ──
 function renderMgmt(aba){
-  const sid=aba+'-search';
-  const q=(document.getElementById(sid)?.value||'').toLowerCase();
-  // só clientes ganhos + serviço correspondente
-  const features=allFeatures.filter(f=>{
-    const p=f.properties;
-    if(p.status!=='won') return false;
-    if(servicoAba(p.servico)!==aba) return false;
-    if(q&&!(p.empresa||'').toLowerCase().includes(q)&&!(p.cidade||'').toLowerCase().includes(q)) return false;
-    return true;
-  });
+  const q=(document.getElementById(aba+'-search')?.value||'').toLowerCase();
+  const ft=allFeatures.filter(f=>f.properties.status==='won'&&servicoAba(f.properties.servico)===aba&&(!q||(f.properties.empresa||'').toLowerCase().includes(q)));
   const etapas=ETAPAS[aba]||ETAPAS.outros;
-  const sub=document.getElementById(aba+'-sub');
-  if(sub) sub.textContent=`${features.length} projeto${features.length!==1?'s':''}`;
-  const kanban=document.getElementById('kanban-'+aba);
-  kanban.innerHTML=etapas.map((etapa,ei)=>{
-    const cards=features.filter(f=>getProj(fid(f),aba).etapa===etapa.id);
-    const cardsHtml=cards.map(f=>{
-      const p=f.properties; const id=fid(f);
-      const proj=getProj(id,aba);
-      const etapaIdx=etapas.findIndex(e=>e.id===proj.etapa);
-      const dias=proj.historico?.length>0?Math.floor((Date.now()-new Date(proj.historico[0].data))/(86400000)):0;
-      const isFirst=etapaIdx===0, isLast=etapaIdx===etapas.length-1;
-      return `<div class="kard ${activeProjIds[aba]===id?'sel':''}" onclick="openProjDetail('${id}','${aba}')" style="border-left-color:${etapa.cor}">
-        <div class="kard-name">${p.empresa||'—'}</div>
-        <div class="kard-meta">${p.cidade||''}${p.estado?', '+p.estado:''}<br>${p.contato||''}</div>
-        ${p.servico?`<div class="kard-tag" style="background:var(--surface3);color:var(--muted2);border:1px solid var(--border)">${p.servico}</div>`:''}
-        <div class="kard-footer">
-          <span class="kard-days">${dias>0?dias+'d':''}</span>
-          <div class="mbts">
-            ${!isFirst?`<button class="mbt" onclick="moveEtapa(event,'${id}','${aba}',-1)" title="Voltar etapa">←</button>`:''}
-            ${!isLast?`<button class="mbt" onclick="moveEtapa(event,'${id}','${aba}',1)" title="Avançar etapa">→</button>`:''}
+  const sub=document.getElementById(aba+'-sub'); if(sub) sub.textContent=`${ft.length} projeto${ft.length!==1?'s':''}`;
+  document.getElementById('kanban-'+aba).innerHTML=etapas.map((etapa,ei)=>{
+    const cards=ft.filter(f=>getProj(fid(f),aba).etapa===etapa.id);
+    return `<div class="kol"><div class="kol-hd"><div class="kol-dot" style="background:${etapa.cor}"></div><span class="kol-name">${etapa.nome}</span><span class="kol-cnt">${cards.length}</span></div>
+      <div class="kol-cards">${cards.map(f=>{const p=f.properties;const id=fid(f);const proj=getProj(id,aba);const ei2=etapas.findIndex(e=>e.id===proj.etapa);const dias=proj.historico?.length>0?Math.floor((Date.now()-new Date(proj.historico[0].data))/86400000):0;
+        return `<div class="kard ${activeProjIds[aba]===id?'sel':''}" onclick="openProjDetail('${id}','${aba}')" style="border-left-color:${etapa.cor}">
+          <div class="kard-name">${p.empresa||'—'}</div>
+          <div class="kard-meta">${p.cidade||''}${p.estado?', '+p.estado:''}<br>${p.contato||''}</div>
+          ${p.servico?`<div class="kard-tag">${p.servico}</div>`:''}
+          <div class="kard-footer"><span class="kard-days">${dias>0?dias+'d':''}</span>
+            <div class="mbts">
+              ${ei2>0?`<button class="mbt" onclick="moveEtapa(event,'${id}','${aba}',-1)">←</button>`:''}
+              ${ei2<etapas.length-1?`<button class="mbt" onclick="moveEtapa(event,'${id}','${aba}',1)">→</button>`:''}
+            </div>
           </div>
-        </div>
-      </div>`;
-    }).join('');
-    return `<div class="kol">
-      <div class="kol-hd"><div class="kol-dot" style="background:${etapa.cor}"></div><span class="kol-name">${etapa.nome}</span><span class="kol-cnt">${cards.length}</span></div>
-      <div class="kol-cards">${cardsHtml||'<div style="height:40px"></div>'}</div>
-    </div>`;
+        </div>`;}).join('')||'<div style="height:40px"></div>'}</div></div>`;
   }).join('');
 }
-
-function moveEtapa(e,id,aba,dir){
-  e.stopPropagation();
-  const proj=getProj(id,aba);
-  const etapas=ETAPAS[aba]||ETAPAS.outros;
-  const idx=etapas.findIndex(et=>et.id===proj.etapa);
-  const ni=Math.max(0,Math.min(etapas.length-1,idx+dir));
-  if(ni===idx) return;
-  proj.etapa=etapas[ni].id;
-  proj.historico=proj.historico||[];
-  proj.historico.push({etapa:proj.etapa,data:new Date().toISOString()});
-  saveProjects();
-  renderMgmt(aba);
-  if(activeProjIds[aba]===id) openProjDetail(id,aba);
-}
-
-function openProjDetail(id,aba){
-  activeProjIds[aba]=id;
-  const f=allFeatures.find(f=>fid(f)===id); if(!f) return;
-  const detailEl=document.getElementById(aba+'-detail');
-  if(!detailEl) return;
-  detailEl.innerHTML=buildDetailHTML(f,aba,aba);
-  detailEl.classList.add('open');
-  if(aba!=='orc') renderMgmt(aba);
-}
+function moveEtapa(e,id,aba,dir){ e.stopPropagation(); const proj=getProj(id,aba); const etapas=ETAPAS[aba]||ETAPAS.outros; const idx=etapas.findIndex(et=>et.id===proj.etapa); const ni=Math.max(0,Math.min(etapas.length-1,idx+dir)); if(ni===idx) return; proj.etapa=etapas[ni].id; proj.historico=proj.historico||[]; proj.historico.push({etapa:proj.etapa,data:new Date().toISOString()}); persistProj(id); renderMgmt(aba); if(activeProjIds[aba]===id) openProjDetail(id,aba); }
+function openProjDetail(id,aba){ activeProjIds[aba]=id; const f=allFeatures.find(f=>fid(f)===id); if(!f) return; const el=document.getElementById(aba+'-detail'); if(!el) return; el.innerHTML=buildDetailHTML(f,aba,aba); el.classList.add('open'); renderMgmt(aba); }
+function closeProjDetail(key){ const el=document.getElementById(key+'-detail'); if(el) el.classList.remove('open'); activeProjIds[key]=null; if(key!=='orc') renderMgmt(key); else renderOrc(); }
 
 function buildDetailHTML(f,aba,key){
   const p=f.properties; const id=fid(f);
-  const etapas=aba==='orc'?null:(ETAPAS[aba]||ETAPAS.outros);
-  const proj=aba!=='orc'?getProj(id,aba):null;
+  const etapas=aba!=='orc'?(ETAPAS[aba]||ETAPAS.outros):null;
+  const proj=etapas?getProj(id,aba):null;
   const etapaAtualIdx=proj?etapas.findIndex(e=>e.id===proj.etapa):0;
-
   const timeline=etapas?etapas.map((et,i)=>{
-    const isDone=i<etapaAtualIdx, isCur=i===etapaAtualIdx;
+    const isDone=i<etapaAtualIdx,isCur=i===etapaAtualIdx;
     const hist=proj.historico?.find(h=>h.etapa===et.id);
-    return `<div class="tl-row" onclick="setEtapaDirect('${id}','${aba}',${i})" title="${et.nome}">
-      <div class="tl-line">
-        <div class="tl-circle ${isDone?'done':isCur?'cur':''}">${isDone?'<span class="ck">✓</span>':isCur?`<div style="width:5px;height:5px;border-radius:50%;background:var(--sent)"></div>`:''}</div>
-        ${i<etapas.length-1?`<div class="tl-conn ${isDone?'done':''}"></div>`:''}
-      </div>
-      <div class="tl-label">
-        <div class="tl-name ${isDone?'done':isCur?'cur':''}">${et.nome}</div>
-        ${hist?`<div class="tl-date">${fmtD(hist.data.split('T')[0])}</div>`:''}
-      </div>
-    </div>`;
-  }).join(''):'';
-
-  // Detalhes do cliente em ordem: fid, empresa, CPF_CNPJ, cidade, estado, contato, telefone, email, data_proposta, valor, status, servico, pdf_link, observacoes
-  return `
-    <div class="pd-hd">
-      <div class="pd-top">
-        <div class="pd-av">${ini(p.empresa||'?')}</div>
-        <div style="flex:1;min-width:0">
-          <div class="pd-name">${p.empresa||'—'}</div>
-          <div class="pd-loc">📍 ${p.cidade||''}${p.estado?', '+p.estado:''}</div>
-        </div>
-        <button class="pd-x" onclick="closeProjDetail('${key}')">✕</button>
-      </div>
-      <div style="display:flex;gap:5px;flex-wrap:wrap">
-        <span class="sbadge ${p.status||'sent'}">${STATUS_LABEL[p.status]||'—'}</span>
-        ${p.servico?`<span style="padding:2px 7px;border-radius:10px;font-size:10px;font-weight:500;background:var(--surface3);color:var(--muted2);border:1px solid var(--border)">${p.servico}</span>`:''}
-      </div>
-    </div>
-    <div class="pd-body">
-      ${p.fid?`<div class="pd-row"><span class="pd-lbl">FID</span><span class="pd-val" style="font-family:'DM Mono',monospace;font-size:11px">${p.fid}</span></div>`:''}
-      ${p.CPF_CNPJ?`<div class="pd-row"><span class="pd-lbl">CPF/CNPJ</span><span class="pd-val" style="font-family:'DM Mono',monospace;font-size:11px">${p.CPF_CNPJ}</span></div>`:''}
-      ${p.cidade?`<div class="pd-row"><span class="pd-lbl">Cidade</span><span class="pd-val">${p.cidade}${p.estado?', '+p.estado:''}</span></div>`:''}
-      ${p.contato?`<div class="pd-row"><span class="pd-lbl">Contato</span><span class="pd-val">${p.contato}</span></div>`:''}
-      ${p.telefone?`<div class="pd-row"><span class="pd-lbl">Telefone</span><span class="pd-val" style="font-family:'DM Mono',monospace;font-size:11px">${p.telefone}</span></div>`:''}
-      ${p.email?`<div class="pd-row"><span class="pd-lbl">Email</span><span class="pd-val" style="color:var(--sent);font-size:11px">${p.email}</span></div>`:''}
-      ${p.data_proposta?`<div class="pd-row"><span class="pd-lbl">Data proposta</span><span class="pd-val">${fmtD(p.data_proposta)}</span></div>`:''}
-      ${p.valor?`<div class="pd-row"><span class="pd-lbl">Valor</span><span class="pd-val">${fmtV(p.valor)}</span></div>`:''}
-      ${p.pdf_link?`<div class="pd-row"><span class="pd-lbl">Proposta</span><a class="pdf-a" href="${p.pdf_link}" target="_blank">↗ PDF</a></div>`:''}
-      ${p.observacoes?`<div style="background:var(--surface2);border-radius:8px;padding:7px 9px;font-size:11px;color:var(--muted);line-height:1.6">${p.observacoes}</div>`:''}
-      ${etapas?`
-        <hr style="border:none;border-top:1px solid var(--border)"/>
-        <div class="pd-section">Progresso</div>
-        <div class="tl">${timeline}</div>
-        <hr style="border:none;border-top:1px solid var(--border)"/>
-        <div class="pd-section">Alterar etapa</div>
-        <div class="etapa-sel-row">
-          <select class="etapa-sel" id="esel-${id}-${aba}">
-            ${etapas.map(et=>`<option value="${et.id}" ${proj.etapa===et.id?'selected':''}>${et.nome}</option>`).join('')}
-          </select>
-          <button class="etapa-save" onclick="saveEtapa('${id}','${aba}')">OK</button>
-        </div>
-        <hr style="border:none;border-top:1px solid var(--border)"/>
-        <div class="pd-section">Notas</div>
-        <textarea class="notes-ta" id="nta-${id}-${aba}" placeholder="Anotações internas…">${proj.notas||''}</textarea>
-        <button class="notes-save" onclick="saveNotes('${id}','${aba}')">Salvar notas</button>
-      `:''}
-    </div>`;
+    return `<div class="tl-row" onclick="setEtapaDirect('${id}','${aba}',${i})">
+      <div class="tl-line"><div class="tl-circle ${isDone?'done':isCur?'cur':''}">${isDone?'<span class="ck">✓</span>':isCur?`<div style="width:5px;height:5px;border-radius:50%;background:var(--sent)"></div>`:''}</div>${i<etapas.length-1?`<div class="tl-conn ${isDone?'done':''}"></div>`:''}</div>
+      <div class="tl-label"><div class="tl-name ${isDone?'done':isCur?'cur':''}">${et.nome}</div>${hist?`<div class="tl-date">${fmtD(hist.data.split('T')[0])}</div>`:''}</div>
+    </div>`;}).join(''):'';
+  return `<div class="pd-hd"><div class="pd-top"><div class="pd-av">${ini(p.empresa||'?')}</div>
+    <div style="flex:1;min-width:0"><div class="pd-name">${p.empresa||'—'}</div><div class="pd-loc">📍 ${p.cidade||''}${p.estado?', '+p.estado:''}</div></div>
+    <button class="pd-x" onclick="closeProjDetail('${key}')">✕</button></div>
+    <div style="display:flex;gap:5px;flex-wrap:wrap"><span class="sbadge ${p.status||'sent'}">${STATUS_LABEL[p.status]||'—'}</span>${p.servico?`<span style="padding:2px 7px;border-radius:10px;font-size:10px;font-weight:500;background:var(--surface3);color:var(--muted2);border:1px solid var(--border)">${p.servico}</span>`:''}</div></div>
+  <div class="pd-body">
+    ${p.fid?`<div class="pd-row"><span class="pd-lbl">FID</span><span class="pd-val" style="font-family:'DM Mono',monospace;font-size:11px">${p.fid}</span></div>`:''}
+    ${p.CPF_CNPJ?`<div class="pd-row"><span class="pd-lbl">CPF/CNPJ</span><span class="pd-val" style="font-family:'DM Mono',monospace;font-size:11px">${p.CPF_CNPJ}</span></div>`:''}
+    ${p.cidade?`<div class="pd-row"><span class="pd-lbl">Cidade</span><span class="pd-val">${p.cidade}${p.estado?', '+p.estado:''}</span></div>`:''}
+    ${p.contato?`<div class="pd-row"><span class="pd-lbl">Contato</span><span class="pd-val">${p.contato}</span></div>`:''}
+    ${p.telefone?`<div class="pd-row"><span class="pd-lbl">Telefone</span><span class="pd-val" style="font-family:'DM Mono',monospace;font-size:11px">${p.telefone}</span></div>`:''}
+    ${p.email?`<div class="pd-row"><span class="pd-lbl">Email</span><span class="pd-val" style="color:var(--sent);font-size:11px">${p.email}</span></div>`:''}
+    ${p.data_proposta?`<div class="pd-row"><span class="pd-lbl">Data proposta</span><span class="pd-val">${fmtD(p.data_proposta)}</span></div>`:''}
+    ${p.valor?`<div class="pd-row"><span class="pd-lbl">Valor</span><span class="pd-val">${fmtV(p.valor)}</span></div>`:''}
+    ${p.pdf_link?`<div class="pd-row"><span class="pd-lbl">Proposta</span><a class="pdf-a" href="${p.pdf_link}" target="_blank">↗ PDF</a></div>`:''}
+    ${p.observacoes?`<div style="background:var(--surface2);border-radius:8px;padding:7px 9px;font-size:11px;color:var(--muted);line-height:1.6">${p.observacoes}</div>`:''}
+    ${etapas?`<hr style="border:none;border-top:1px solid var(--border)"/>
+      <div class="pd-section">Progresso</div><div class="tl">${timeline}</div>
+      <hr style="border:none;border-top:1px solid var(--border)"/>
+      <div class="pd-section">Alterar etapa</div>
+      <div class="etapa-sel-row"><select class="etapa-sel" id="esel-${id}-${aba}">${etapas.map(et=>`<option value="${et.id}" ${proj.etapa===et.id?'selected':''}>${et.nome}</option>`).join('')}</select>
+      <button class="etapa-save" onclick="saveEtapa('${id}','${aba}')">OK</button></div>
+      <hr style="border:none;border-top:1px solid var(--border)"/>
+      <div class="pd-section">Notas</div>
+      <textarea class="notes-ta" id="nta-${id}-${aba}" placeholder="Anotações internas…">${proj.notas||''}</textarea>
+      <button class="notes-save" onclick="saveNotes('${id}','${aba}')">Salvar notas</button>`:''}
+  </div>`;
 }
+function saveEtapa(id,aba){ const sel=document.getElementById(`esel-${id}-${aba}`); if(!sel) return; const proj=getProj(id,aba); if(proj.etapa===sel.value) return; proj.etapa=sel.value; proj.historico=proj.historico||[]; proj.historico.push({etapa:proj.etapa,data:new Date().toISOString()}); persistProj(id); openProjDetail(id,aba); }
+function setEtapaDirect(id,aba,idx){ const etapas=ETAPAS[aba]||ETAPAS.outros; const proj=getProj(id,aba); if(proj.etapa===etapas[idx].id) return; proj.etapa=etapas[idx].id; proj.historico=proj.historico||[]; proj.historico.push({etapa:proj.etapa,data:new Date().toISOString()}); persistProj(id); openProjDetail(id,aba); }
+function saveNotes(id,aba){ const ta=document.getElementById(`nta-${id}-${aba}`); if(!ta) return; getProj(id,aba).notas=ta.value; persistProj(id); ta.style.borderColor='var(--accent)'; setTimeout(()=>ta.style.borderColor='',1400); }
 
-function closeProjDetail(key){
-  const el=document.getElementById(key+'-detail');
-  if(el) el.classList.remove('open');
-  activeProjIds[key]=null;
-  if(key!=='orc') renderMgmt(key);
-  else renderOrc();
-}
-
-function saveEtapa(id,aba){
-  const sel=document.getElementById(`esel-${id}-${aba}`); if(!sel) return;
-  const proj=getProj(id,aba);
-  if(proj.etapa===sel.value) return;
-  proj.etapa=sel.value;
-  proj.historico=proj.historico||[];
-  proj.historico.push({etapa:proj.etapa,data:new Date().toISOString()});
-  saveProjects(); openProjDetail(id,aba);
-}
-
-function setEtapaDirect(id,aba,idx){
-  const etapas=ETAPAS[aba]||ETAPAS.outros;
-  const proj=getProj(id,aba);
-  if(proj.etapa===etapas[idx].id) return;
-  proj.etapa=etapas[idx].id;
-  proj.historico=proj.historico||[];
-  proj.historico.push({etapa:proj.etapa,data:new Date().toISOString()});
-  saveProjects(); openProjDetail(id,aba);
-}
-
-function saveNotes(id,aba){
-  const ta=document.getElementById(`nta-${id}-${aba}`); if(!ta) return;
-  getProj(id,aba).notas=ta.value;
-  saveProjects();
-  ta.style.borderColor='var(--accent)';
-  setTimeout(()=>ta.style.borderColor='',1400);
-}
-
-// ════════════════════
-// UTILS
-// ════════════════════
-function fid(f){
-  const p=f.properties;
-  return btoa(encodeURIComponent((p.fid||p.empresa||'')+'_'+(f.geometry.coordinates||[]).join('_'))).replace(/[=+/]/g,'_');
-}
+// ── UTILS ──
+function fid(f){ const p=f.properties; return btoa(encodeURIComponent((p.fid||p.empresa||'')+'_'+(f.geometry.coordinates||[]).join('_'))).replace(/[=+/]/g,'_'); }
 function ini(n){ return n.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
 function fmtV(n){ return n?'R$ '+Number(n).toLocaleString('pt-BR',{minimumFractionDigits:2}):'—'; }
 function fmtD(s){ if(!s) return '—'; try{ return new Date(s.includes('T')?s:s+'T00:00:00').toLocaleDateString('pt-BR'); }catch(e){ return s; } }
 
-// ════════════════════
-// DEMO DATA
-// ════════════════════
-function getDemoGeoJSON(){
-  return {type:"FeatureCollection",features:[
-    {type:"Feature",geometry:{type:"Point",coordinates:[-47.8103,-21.1775]},properties:{fid:1,empresa:"Fazenda São Paulo",CPF_CNPJ:"12.345.678/0001-90",cidade:"Ribeirão Preto",estado:"SP",contato:"Carlos Mendes",telefone:"(16) 99234-5678",email:"carlos@fazendasp.com.br",data_proposta:"2024-11-10",valor:45000,status:"won",servico:"Laudo RGB",pdf_link:"",observacoes:"Cliente interessado em expansão."}},
-    {type:"Feature",geometry:{type:"Point",coordinates:[-34.877,-8.0476]},properties:{fid:2,empresa:"Tech Recife",CPF_CNPJ:"98.765.432/0001-11",cidade:"Recife",estado:"PE",contato:"Ana Lima",telefone:"(81) 98765-4321",email:"ana@techrecife.com",data_proposta:"2024-12-05",valor:28000,status:"sent",servico:"Laudo LiDAR",pdf_link:"",observacoes:"Aguardando retorno."}},
-    {type:"Feature",geometry:{type:"Point",coordinates:[-51.2177,-30.0346]},properties:{fid:3,empresa:"Construções Sul",CPF_CNPJ:"11.222.333/0001-44",cidade:"Porto Alegre",estado:"RS",contato:"Marcos Oliveira",telefone:"(51) 97654-3210",email:"marcos@construcaosul.com",data_proposta:"2024-10-22",valor:92000,status:"won",servico:"Georreferenciamento",pdf_link:"",observacoes:"Contrato assinado."}},
-    {type:"Feature",geometry:{type:"Point",coordinates:[-38.5014,-12.9714]},properties:{fid:4,empresa:"Saúde Nordeste",CPF_CNPJ:"55.666.777/0001-88",cidade:"Salvador",estado:"BA",contato:"Fernanda Costa",telefone:"(71) 96543-2109",email:"fcosta@saudene.com",data_proposta:"2024-09-15",valor:67000,status:"neg",servico:"Assessoria + Laudo LiDAR",pdf_link:"",observacoes:"Negociando valor."}},
-    {type:"Feature",geometry:{type:"Point",coordinates:[-49.2648,-16.6869]},properties:{fid:5,empresa:"Agro Centro-Oeste",CPF_CNPJ:"44.555.666/0001-77",cidade:"Goiânia",estado:"GO",contato:"Roberto Alves",telefone:"(62) 95432-1098",email:"roberto@agrocentrooeste.com",data_proposta:"2025-01-08",valor:19000,status:"lost",servico:"Topografia",pdf_link:"",observacoes:"Optou por concorrente."}},
-    {type:"Feature",geometry:{type:"Point",coordinates:[-51.3889,-22.1256]},properties:{fid:6,empresa:"Arias Demo",CPF_CNPJ:"33.444.555/0001-66",cidade:"Presidente Prudente",estado:"SP",contato:"Luiza Ferreira",telefone:"(18) 98815-3529",email:"luiza@arias.com.br",data_proposta:"2025-02-20",valor:38000,status:"won",servico:"Topografia",pdf_link:"",observacoes:"Reunião marcada."}},
-  ]};
-}
+// ── DEMO DATA ──
+function getDemoGeoJSON(){ return {type:"FeatureCollection",features:[
+  {type:"Feature",geometry:{type:"Point",coordinates:[-47.8103,-21.1775]},properties:{fid:1,empresa:"Fazenda São Paulo",CPF_CNPJ:"12.345.678/0001-90",cidade:"Ribeirão Preto",estado:"SP",contato:"Carlos Mendes",telefone:"(16) 99234-5678",email:"carlos@fazendasp.com.br",data_proposta:"2024-11-10",valor:45000,status:"won",servico:"Laudo RGB",pdf_link:"",observacoes:"Cliente interessado em expansão."}},
+  {type:"Feature",geometry:{type:"Point",coordinates:[-34.877,-8.0476]},properties:{fid:2,empresa:"Tech Recife",CPF_CNPJ:"98.765.432/0001-11",cidade:"Recife",estado:"PE",contato:"Ana Lima",telefone:"(81) 98765-4321",email:"ana@techrecife.com",data_proposta:"2024-12-05",valor:28000,status:"sent",servico:"Laudo LiDAR",pdf_link:"",observacoes:"Aguardando retorno."}},
+  {type:"Feature",geometry:{type:"Point",coordinates:[-51.2177,-30.0346]},properties:{fid:3,empresa:"Construções Sul",CPF_CNPJ:"11.222.333/0001-44",cidade:"Porto Alegre",estado:"RS",contato:"Marcos Oliveira",telefone:"(51) 97654-3210",email:"marcos@construcaosul.com",data_proposta:"2024-10-22",valor:92000,status:"won",servico:"Georreferenciamento",pdf_link:"",observacoes:"Contrato assinado."}},
+  {type:"Feature",geometry:{type:"Point",coordinates:[-51.3889,-22.1256]},properties:{fid:4,empresa:"Arias Demo",CPF_CNPJ:"33.444.555/0001-66",cidade:"Presidente Prudente",estado:"SP",contato:"Luiza Ferreira",telefone:"(18) 98815-3529",email:"luiza@arias.com.br",data_proposta:"2025-02-20",valor:38000,status:"won",servico:"Topografia",pdf_link:"",observacoes:"Reunião marcada."}},
+]}; }
+
+// ── CHECK SESSION ON LOAD ──
+window.addEventListener('load',()=>{ if(checkSession()) initApp(); });
 </script>
 </body>
 </html>
