@@ -3,115 +3,108 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Mapa de Clientes</title>
+<title>Arias Cartografia — CRM</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
-:root {
-  --bg:#0f1117; --surface:#181b24; --surface2:#1f2333; --surface3:#252840;
-  --border:rgba(255,255,255,0.08); --border2:rgba(255,255,255,0.13);
-  --text:#e8eaf0; --muted:#7c8099; --muted2:#9aa0b8;
-  --accent:#1dbe8a; --accent2:#1a9e75;
-  --won:#1dbe8a; --sent:#4b9cf5; --neg:#f5a623; --lost:#e05252;
-  --won-bg:rgba(29,190,138,0.13); --sent-bg:rgba(75,156,245,0.13);
-  --neg-bg:rgba(245,166,35,0.13); --lost-bg:rgba(224,82,82,0.13);
-  --radius:10px; --shadow:0 8px 32px rgba(0,0,0,0.45);
+:root{
+  --bg:#0f1117;--surface:#181b24;--surface2:#1f2333;--surface3:#252840;
+  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.14);
+  --text:#e8eaf0;--muted:#7c8099;--muted2:#9aa0b8;
+  --accent:#1dbe8a;--accent2:#1a9e75;
+  --won:#1dbe8a;--sent:#4b9cf5;--neg:#f5a623;--lost:#e05252;
+  --won-bg:rgba(29,190,138,0.13);--sent-bg:rgba(75,156,245,0.13);
+  --neg-bg:rgba(245,166,35,0.13);--lost-bg:rgba(224,82,82,0.13);
+  --md:#9b6dff;--md-bg:rgba(155,109,255,0.13);
+  --geo:#f57542;--geo-bg:rgba(245,117,66,0.13);
+  --topo:#4b9cf5;--topo-bg:rgba(75,156,245,0.13);
+  --out:#7c8099;--out-bg:rgba(124,128,153,0.13);
+  --radius:10px;--shadow:0 8px 32px rgba(0,0,0,0.45);
 }
-
-// Attach event listeners to header tabs after DOM is ready
-function setupHeaderTabs(){
-  const mapping = { 'tab-mapa':'mapa', 'tab-orcamentos':'orcamentos', 'tab-md':'md', 'tab-geo':'geo', 'tab-topo':'topo', 'tab-outros':'outros' };
-  Object.keys(mapping).forEach(id=>{
-    const el=document.getElementById(id);
-    if(!el) return;
-    el.addEventListener('click', ()=> showView(mapping[id]));
-  });
-}
-
-function setupFilterListeners(){
-  const mapChips = [ ['chip-all', ()=>{ clearFilters(); }], ['chip-won', ()=>setStatus('won')], ['chip-sent', ()=>setStatus('sent')], ['chip-neg', ()=>setStatus('neg')], ['chip-lost', ()=>setStatus('lost')] ];
-  mapChips.forEach(([id,fn])=>{ const el=document.getElementById(id); if(!el) return; el.addEventListener('click', fn); });
-  const clearBtn = document.getElementById('chip-clear'); if(clearBtn) clearBtn.addEventListener('click', clearFilters);
-  const pv = document.getElementById('pv-search'); if(pv) pv.addEventListener('input', renderKanban);
-}
-
-// initialize listeners
-document.addEventListener('DOMContentLoaded', ()=>{
-  setupHeaderTabs();
-  setupFilterListeners();
-  buildServicoChips();
-});
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 
-/* HEADER */
-header{display:flex;align-items:center;gap:10px;padding:0 18px;height:52px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;z-index:1000;position:relative}
-.logo{display:flex;align-items:center;gap:8px;font-weight:600;font-size:15px;letter-spacing:-.3px}
-.logo-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent)}
-.hspace{flex:1}
-.tab-btn{padding:5px 14px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:none;color:var(--muted);transition:all .15s}
-.tab-btn:hover{color:var(--text);border-color:var(--border2)}
-.tab-btn.active{background:var(--surface3);color:var(--text);border-color:var(--border2)}
+/* ── HEADER ── */
+header{display:flex;align-items:center;gap:0;padding:0;height:52px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;z-index:1000;position:relative}
+.logo{display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px;letter-spacing:-.3px;padding:0 16px;border-right:1px solid var(--border);height:100%}
+.logo-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent)}
+.nav{display:flex;align-items:stretch;height:100%;flex:1}
+.nav-btn{display:flex;align-items:center;gap:6px;padding:0 16px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:none;color:var(--muted);transition:all .15s;border-bottom:2px solid transparent;white-space:nowrap}
+.nav-btn:hover{color:var(--text)}
+.nav-btn.active{color:var(--text);border-bottom-color:var(--accent)}
+.nav-sep{width:1px;background:var(--border);margin:10px 0}
+.header-right{display:flex;align-items:center;gap:10px;padding:0 16px;border-left:1px solid var(--border);height:100%}
 .count-pill{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:3px 10px}
 
-/* FILTER BAR */
-.filter-bar{display:flex;align-items:center;gap:6px;padding:7px 18px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap}
-.flabel{font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-right:2px}
-.chip{padding:3px 10px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--muted);transition:all .15s;user-select:none}
+/* ── FILTER BAR ── */
+.filter-bar{display:flex;align-items:center;gap:6px;padding:7px 16px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap}
+.flabel{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-right:2px}
+.chip{padding:3px 11px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--muted);transition:all .15s;user-select:none;display:inline-flex;align-items:center;gap:5px}
 .chip:hover{color:var(--text);border-color:var(--border2)}
 .chip.active{color:var(--text);border-color:rgba(255,255,255,0.22);background:rgba(255,255,255,0.06)}
 .chip.won.active{color:var(--won);border-color:var(--won);background:var(--won-bg)}
 .chip.sent.active{color:var(--sent);border-color:var(--sent);background:var(--sent-bg)}
 .chip.neg.active{color:var(--neg);border-color:var(--neg);background:var(--neg-bg)}
 .chip.lost.active{color:var(--lost);border-color:var(--lost);background:var(--lost-bg)}
-.fsep{width:1px;height:14px;background:var(--border);margin:0 3px}
-.chip-clear{padding:3px 9px;border-radius:20px;font-size:12px;cursor:pointer;color:var(--muted);background:none;border:1px solid var(--border);transition:all .15s}
-.chip-clear:hover{color:var(--text)}
+.chip.md.active{color:var(--md);border-color:var(--md);background:var(--md-bg)}
+.chip.geo.active{color:var(--geo);border-color:var(--geo);background:var(--geo-bg)}
+.chip.topo.active{color:var(--topo);border-color:var(--topo);background:var(--topo-bg)}
+.chip.out.active{color:var(--out);border-color:var(--out);background:var(--out-bg)}
+.chip-x{padding:3px 9px;border-radius:20px;font-size:13px;cursor:pointer;color:var(--muted);background:none;border:1px solid var(--border);transition:all .15s;line-height:1}
+.chip-x:hover{color:var(--text);border-color:var(--border2)}
+.fsep{width:1px;height:14px;background:var(--border);margin:0 3px;flex-shrink:0}
 
-/* MAIN LAYOUT */
+/* ── LAYOUT ── */
 .page{display:flex;flex-direction:column;height:100vh}
 .main{display:flex;flex:1;overflow:hidden}
-#map{flex:1;min-width:0}
 
-/* SIDEBAR */
-.sidebar{width:310px;flex-shrink:0;display:flex;flex-direction:column;background:var(--surface);border-left:1px solid var(--border);overflow:hidden}
-.sb-head{padding:12px 15px 9px;border-bottom:1px solid var(--border);flex-shrink:0}
-.sb-title{font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
-.sb-list{overflow-y:auto;flex:1;padding:6px 0}
+/* ── MAPA ── */
+#map{flex:1;min-width:0}
+.leaflet-container{background:#1a1d2b !important}
+.leaflet-tile{filter:brightness(.68) saturate(.55) hue-rotate(180deg)}
+.leaflet-control-zoom a{background:var(--surface) !important;color:var(--text) !important;border-color:var(--border) !important}
+.leaflet-control-attribution{background:rgba(15,17,23,.7) !important;color:var(--muted) !important;font-size:10px !important}
+.leaflet-control-attribution a{color:var(--muted) !important}
+.ctt{background:var(--surface) !important;border:1px solid var(--border2) !important;color:var(--text) !important;border-radius:6px !important;padding:5px 9px !important;font-family:'DM Sans',sans-serif !important;font-size:12px !important;box-shadow:var(--shadow) !important}
+.ctt::before{display:none !important}
+
+/* ── SIDEBAR MAPA ── */
+.sidebar{width:300px;flex-shrink:0;display:flex;flex-direction:column;background:var(--surface);border-left:1px solid var(--border);overflow:hidden}
+.sb-head{padding:11px 14px 8px;border-bottom:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:space-between}
+.sb-title{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.sb-list{overflow-y:auto;flex:1;padding:4px 0}
 .sb-list::-webkit-scrollbar{width:3px}
 .sb-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
-.client-item{display:flex;align-items:center;gap:9px;padding:8px 15px;cursor:pointer;transition:background .12s;border-left:2px solid transparent}
-.client-item:hover{background:var(--surface2)}
-.client-item.active{background:var(--surface2);border-left-color:var(--accent)}
-.ci-av{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;background:rgba(29,190,138,0.15);color:var(--accent);letter-spacing:.5px}
+.ci{display:flex;align-items:center;gap:8px;padding:7px 14px;cursor:pointer;transition:background .12s;border-left:2px solid transparent}
+.ci:hover{background:var(--surface2)}
+.ci.active{background:var(--surface2);border-left-color:var(--accent)}
+.ci-av{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;background:rgba(29,190,138,0.15);color:var(--accent)}
 .ci-info{flex:1;min-width:0}
-.ci-name{font-size:13px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ci-name{font-size:12px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ci-sub{font-size:11px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sdot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
-.sdot.won{background:var(--won)} .sdot.sent{background:var(--sent)} .sdot.neg{background:var(--neg)} .sdot.lost{background:var(--lost)}
-
-/* STATS */
+.sdot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.sdot.won{background:var(--won)}.sdot.sent{background:var(--sent)}.sdot.neg{background:var(--neg)}.sdot.lost{background:var(--lost)}
 .stats-row{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--border);flex-shrink:0}
 .stat-box{padding:9px 10px;text-align:center;border-right:1px solid var(--border)}
 .stat-box:last-child{border-right:none}
 .stat-val{font-family:'DM Mono',monospace;font-size:15px;font-weight:500;color:var(--text)}
 .stat-lbl{font-size:10px;color:var(--muted);margin-top:1px;text-transform:uppercase;letter-spacing:.3px}
 
-/* DETAIL PANEL */
-.detail-panel{position:absolute;top:0;right:310px;bottom:0;width:300px;background:var(--surface);border-left:1px solid var(--border);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:800;transform:translateX(16px);opacity:0;pointer-events:none;transition:transform .2s ease,opacity .2s ease;overflow-y:auto}
+/* ── DETAIL PANEL MAPA ── */
+.detail-panel{position:absolute;top:0;right:300px;bottom:0;width:290px;background:var(--surface);border-left:1px solid var(--border);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:800;transform:translateX(14px);opacity:0;pointer-events:none;transition:transform .2s,opacity .2s;overflow-y:auto}
 .detail-panel.open{transform:translateX(0);opacity:1;pointer-events:all}
-.dp-hd{padding:14px 15px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:9px}
+.dp-hd{padding:13px 14px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:9px}
 .dp-av{width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;background:rgba(29,190,138,0.15);color:var(--accent);flex-shrink:0}
 .dp-name{font-size:13px;font-weight:600;color:var(--text);line-height:1.3}
 .dp-loc{font-size:11px;color:var(--muted);margin-top:2px}
-.dp-x{margin-left:auto;background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:0 0 0 6px;line-height:1}
+.dp-x{margin-left:auto;background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:0 0 0 6px}
 .dp-x:hover{color:var(--text)}
-.dp-body{padding:13px 15px;display:flex;flex-direction:column;gap:9px}
+.dp-body{padding:12px 14px;display:flex;flex-direction:column;gap:9px}
 .dp-row{display:flex;gap:7px;align-items:flex-start}
-.dp-lbl{font-size:11px;color:var(--muted);min-width:88px;padding-top:1px;flex-shrink:0}
-.dp-val{font-size:12px;color:var(--text);font-weight:500;flex:1}
+.dp-lbl{font-size:11px;color:var(--muted);min-width:90px;padding-top:1px;flex-shrink:0}
+.dp-val{font-size:12px;color:var(--text);font-weight:500;flex:1;word-break:break-all}
 .dp-div{border:none;border-top:1px solid var(--border)}
 .dp-note{background:var(--surface2);border-radius:8px;padding:8px 10px;font-size:12px;color:var(--muted);line-height:1.6}
 .sbadge{display:inline-flex;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
@@ -121,711 +114,714 @@ header{display:flex;align-items:center;gap:10px;padding:0 18px;height:52px;backg
 .sbadge.lost{color:var(--lost);background:var(--lost-bg)}
 .pdf-a{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:500;color:var(--accent);background:var(--won-bg);border:1px solid rgba(29,190,138,0.22);text-decoration:none}
 .pdf-a:hover{background:rgba(29,190,138,0.22)}
+.goto-btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:7px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid rgba(29,190,138,0.3);background:rgba(29,190,138,0.08);color:var(--accent);transition:all .15s;width:100%;margin-top:2px}
+.goto-btn:hover{background:rgba(29,190,138,0.18)}
 
-/* PROGRESSO DE PROJETO */
-.proj-btn{display:flex;align-items:center;justify-content:center;gap:6px;margin:4px 0 0;padding:7px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid rgba(29,190,138,0.3);background:rgba(29,190,138,0.08);color:var(--accent);transition:all .15s;width:100%}
-.proj-btn:hover{background:rgba(29,190,138,0.15)}
+/* ── VIEWS GESTÃO (kanban) ── */
+.mgmt-view{display:none;flex-direction:column;flex:1;overflow:hidden}
+.mgmt-view.active{display:flex}
+.map-wrap{display:flex;flex:1;overflow:hidden;position:relative}
 
-/* ── PAINEL KANBAN / PROJETOS ── */
-.projects-view{display:none;flex-direction:column;flex:1;overflow:hidden}
-.projects-view.active{display:flex}
-.map-view{display:flex;flex:1;overflow:hidden}
+.mv-topbar{padding:11px 18px 9px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0;background:var(--surface)}
+.mv-title{font-size:13px;font-weight:600;color:var(--text)}
+.mv-sub{font-size:11px;color:var(--muted);margin-left:4px}
+.mv-space{flex:1}
+.mv-search{padding:5px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text);font-family:'DM Sans',sans-serif;outline:none;width:170px}
+.mv-search::placeholder{color:var(--muted)}
+.mv-search:focus{border-color:var(--border2)}
 
-.pv-header{padding:14px 20px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-shrink:0;background:var(--surface)}
-.pv-title{font-size:14px;font-weight:600;color:var(--text)}
-.pv-sub{font-size:12px;color:var(--muted)}
-.pv-hspace{flex:1}
-.pv-search{padding:5px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text);font-family:'DM Sans',sans-serif;outline:none;width:180px}
-.pv-search::placeholder{color:var(--muted)}
-.pv-search:focus{border-color:var(--border2)}
-
-.kanban{display:flex;gap:12px;padding:14px 18px;overflow-x:auto;flex:1;align-items:flex-start}
+.kanban{display:flex;gap:10px;padding:12px 16px;overflow-x:auto;flex:1;align-items:flex-start}
 .kanban::-webkit-scrollbar{height:4px}
 .kanban::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
 
-.kol{flex-shrink:0;width:220px;display:flex;flex-direction:column;gap:8px}
-.kol-head{display:flex;align-items:center;gap:7px;padding:7px 10px;border-radius:8px;background:var(--surface2);border:1px solid var(--border)}
-.kol-color{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.kol-name{font-size:12px;font-weight:600;color:var(--text);flex:1}
-.kol-cnt{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1px 7px}
-.kol-cards{display:flex;flex-direction:column;gap:7px;min-height:60px}
+.kol{flex-shrink:0;width:210px;display:flex;flex-direction:column;gap:7px}
+.kol-hd{display:flex;align-items:center;gap:6px;padding:6px 9px;border-radius:8px;background:var(--surface2);border:1px solid var(--border)}
+.kol-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.kol-name{font-size:11px;font-weight:600;color:var(--text);flex:1}
+.kol-cnt{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1px 6px}
+.kol-cards{display:flex;flex-direction:column;gap:6px;min-height:50px}
 
-.kard{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:10px 11px;cursor:pointer;transition:all .15s;border-left:3px solid transparent}
+.kard{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 10px;cursor:pointer;transition:all .15s;border-left:3px solid var(--border)}
 .kard:hover{border-color:var(--border2);background:var(--surface3)}
-.kard.active{border-color:var(--accent);background:var(--surface3)}
-.kard-name{font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px}
+.kard.sel{border-left-color:var(--accent);background:var(--surface3)}
+.kard-name{font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kard-meta{font-size:11px;color:var(--muted);line-height:1.5}
-.kard-service{display:inline-flex;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:500;margin-top:5px;background:rgba(29,190,138,0.1);color:var(--accent);border:1px solid rgba(29,190,138,0.2)}
-.kard-footer{display:flex;align-items:center;justify-content:space-between;margin-top:7px}
+.kard-tag{display:inline-flex;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:500;margin-top:5px}
+.kard-footer{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
 .kard-days{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)}
-.kard-move-btns{display:flex;gap:3px}
-.move-btn{background:none;border:1px solid var(--border);border-radius:4px;color:var(--muted);font-size:10px;cursor:pointer;padding:1px 5px;transition:all .15s;line-height:1.6}
-.move-btn:hover{color:var(--text);border-color:var(--border2)}
+.mbts{display:flex;gap:3px}
+.mbt{background:none;border:1px solid var(--border);border-radius:4px;color:var(--muted);font-size:11px;cursor:pointer;padding:1px 6px;transition:all .15s;line-height:1.6}
+.mbt:hover{color:var(--text);border-color:var(--border2)}
 
-/* DETAIL SIDE em projetos */
-.proj-detail{position:relative;width:280px;flex-shrink:0;background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;transform:translateX(10px);opacity:0;pointer-events:none;transition:transform .2s,opacity .2s}
+/* ── STATUS BADGES ORCAMENTO ── */
+.kard-status{display:inline-flex;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:600;margin-top:4px}
+.kard-status.won{color:var(--won);background:var(--won-bg);border:1px solid rgba(29,190,138,.2)}
+.kard-status.sent{color:var(--sent);background:var(--sent-bg);border:1px solid rgba(75,156,245,.2)}
+.kard-status.neg{color:var(--neg);background:var(--neg-bg);border:1px solid rgba(245,166,35,.2)}
+.kard-status.lost{color:var(--lost);background:var(--lost-bg);border:1px solid rgba(224,82,82,.2)}
+
+/* ── PROJ DETAIL ── */
+.proj-detail{width:270px;flex-shrink:0;background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;transform:translateX(8px);opacity:0;pointer-events:none;transition:transform .2s,opacity .2s}
 .proj-detail.open{transform:translateX(0);opacity:1;pointer-events:all}
-.pd-hd{padding:14px 15px;border-bottom:1px solid var(--border)}
-.pd-name{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px}
-.pd-loc{font-size:11px;color:var(--muted)}
-.pd-body{padding:13px 15px;display:flex;flex-direction:column;gap:10px}
-.pd-section{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:1px}
-.pd-row{display:flex;gap:7px;align-items:flex-start;font-size:12px}
-.pd-lbl{color:var(--muted);min-width:80px;flex-shrink:0}
-.pd-val{color:var(--text);font-weight:500}
+.pd-hd{padding:13px 14px;border-bottom:1px solid var(--border)}
+.pd-top{display:flex;align-items:flex-start;gap:8px;margin-bottom:8px}
+.pd-av{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:rgba(29,190,138,.15);color:var(--accent);flex-shrink:0}
+.pd-name{font-size:13px;font-weight:600;color:var(--text);line-height:1.3}
+.pd-loc{font-size:11px;color:var(--muted);margin-top:1px}
+.pd-x{margin-left:auto;background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:0}
+.pd-x:hover{color:var(--text)}
+.pd-body{padding:12px 14px;display:flex;flex-direction:column;gap:9px}
+.pd-section{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.pd-row{display:flex;gap:6px;align-items:flex-start;font-size:12px}
+.pd-lbl{color:var(--muted);min-width:78px;flex-shrink:0;font-size:11px}
+.pd-val{color:var(--text);font-weight:500;word-break:break-all}
 
-/* ETAPAS TIMELINE */
-.etapas-list{display:flex;flex-direction:column;gap:0}
-.etapa-row{display:flex;align-items:flex-start;gap:9px;padding:7px 0;cursor:pointer;transition:background .12s;border-radius:7px;padding:6px 8px;margin:0 -8px}
-.etapa-row:hover{background:var(--surface2)}
-.etapa-line{display:flex;flex-direction:column;align-items:center;flex-shrink:0;width:16px}
-.etapa-circle{width:16px;height:16px;border-radius:50%;border:2px solid var(--border2);background:var(--surface);display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
-.etapa-circle.done{background:var(--accent);border-color:var(--accent)}
-.etapa-circle.current{background:var(--surface);border-color:var(--sent);box-shadow:0 0 0 3px rgba(75,156,245,0.2)}
-.etapa-connector{width:2px;height:18px;background:var(--border);margin:1px 0}
-.etapa-connector.done{background:var(--accent)}
-.etapa-text{flex:1;min-width:0}
-.etapa-name{font-size:12px;font-weight:500;color:var(--muted);transition:color .15s}
-.etapa-name.done{color:var(--text)}
-.etapa-name.current{color:var(--sent)}
-.etapa-date{font-size:10px;color:var(--muted);margin-top:1px;font-family:'DM Mono',monospace}
-.checkmark{color:white;font-size:8px;line-height:1}
+/* TIMELINE */
+.tl{display:flex;flex-direction:column}
+.tl-row{display:flex;align-items:flex-start;gap:8px;padding:5px 7px;cursor:pointer;border-radius:7px;transition:background .12s;margin:0 -7px}
+.tl-row:hover{background:var(--surface2)}
+.tl-line{display:flex;flex-direction:column;align-items:center;flex-shrink:0;width:14px}
+.tl-circle{width:14px;height:14px;border-radius:50%;border:2px solid var(--border2);background:var(--surface);display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
+.tl-circle.done{background:var(--accent);border-color:var(--accent)}
+.tl-circle.cur{background:var(--surface);border-color:var(--sent);box-shadow:0 0 0 3px rgba(75,156,245,.2)}
+.tl-conn{width:2px;height:16px;background:var(--border);margin:1px 0}
+.tl-conn.done{background:var(--accent)}
+.tl-label{flex:1;min-width:0}
+.tl-name{font-size:12px;font-weight:500;color:var(--muted);transition:color .15s}
+.tl-name.done{color:var(--text)}.tl-name.cur{color:var(--sent)}
+.tl-date{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:1px}
+.ck{color:white;font-size:8px;line-height:1}
 
 /* ETAPA SELECT */
-.etapa-select-row{display:flex;align-items:center;gap:8px}
-.etapa-select{flex:1;padding:6px 9px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text);font-family:'DM Sans',sans-serif;cursor:pointer}
-.etapa-select:focus{outline:none;border-color:var(--border2)}
-.etapa-save-btn{padding:5px 12px;background:var(--accent2);border:none;border-radius:8px;color:white;font-size:12px;font-weight:500;cursor:pointer;transition:background .15s;white-space:nowrap}
-.etapa-save-btn:hover{background:var(--accent)}
+.etapa-sel-row{display:flex;align-items:center;gap:7px}
+.etapa-sel{flex:1;padding:5px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text);font-family:'DM Sans',sans-serif;cursor:pointer}
+.etapa-sel:focus{outline:none;border-color:var(--border2)}
+.etapa-save{padding:5px 11px;background:var(--accent2);border:none;border-radius:8px;color:white;font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap}
+.etapa-save:hover{background:var(--accent)}
+.notes-ta{width:100%;padding:7px 9px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text);font-family:'DM Sans',sans-serif;resize:vertical;min-height:65px}
+.notes-ta:focus{outline:none;border-color:var(--border2)}
+.notes-save{padding:5px 11px;background:var(--surface3);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:12px;cursor:pointer;margin-top:4px}
+.notes-save:hover{background:var(--surface2)}
 
-/* NOTAS */
-.notes-area{width:100%;padding:7px 9px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text);font-family:'DM Sans',sans-serif;resize:vertical;min-height:70px}
-.notes-area:focus{outline:none;border-color:var(--border2)}
-.notes-save-btn{padding:5px 12px;background:var(--surface3);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:12px;cursor:pointer;margin-top:5px;transition:background .15s}
-.notes-save-btn:hover{background:var(--surface2)}
-
-/* EMPTY / LOADING */
 .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;gap:8px;color:var(--muted);font-size:13px;text-align:center;flex:1}
 .empty-icon{font-size:28px;opacity:.4;margin-bottom:4px}
-.loading-bar{position:fixed;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent),var(--sent));z-index:9999;animation:loading 1.2s ease-in-out infinite}
-@keyframes loading{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+#loading-bar{position:fixed;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent),var(--sent));z-index:9999;animation:ldg 1.2s ease-in-out infinite}
+@keyframes ldg{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
 
-/* LEAFLET */
-.leaflet-container{background:#1a1d2b !important}
-.leaflet-tile{filter:brightness(.68) saturate(.55) hue-rotate(180deg)}
-.leaflet-control-zoom a{background:var(--surface) !important;color:var(--text) !important;border-color:var(--border) !important}
-.leaflet-control-attribution{background:rgba(15,17,23,.7) !important;color:var(--muted) !important;font-size:10px !important}
-.leaflet-control-attribution a{color:var(--muted) !important}
-.ctt{background:var(--surface) !important;border:1px solid var(--border) !important;color:var(--text) !important;border-radius:6px !important;padding:5px 9px !important;font-family:'DM Sans',sans-serif !important;font-size:12px !important;box-shadow:var(--shadow) !important}
-.ctt::before{display:none !important}
-
-@media(max-width:768px){
-  .sidebar{width:100%;position:absolute;bottom:0;left:0;right:0;height:200px;border-left:none;border-top:1px solid var(--border);z-index:900}
+@media(max-width:900px){
+  .sidebar{width:100%;position:absolute;bottom:0;left:0;right:0;height:190px;border-left:none;border-top:1px solid var(--border);z-index:900}
   .detail-panel{right:0;width:100%;border:none}
-  .kol{width:190px}
-  .proj-detail{width:100%;position:absolute;bottom:0;left:0;right:0;height:60%;border-left:none;border-top:1px solid var(--border);z-index:900}
+  .proj-detail{width:100%;position:absolute;bottom:0;left:0;right:0;height:58%;border-left:none;border-top:1px solid var(--border);z-index:900}
+  .nav-btn span{display:none}
 }
 </style>
 </head>
 <body>
-<div id="loading-bar" class="loading-bar"></div>
-
+<div id="loading-bar"></div>
 <div class="page">
+
+  <!-- ── HEADER ── -->
   <header>
-    <div class="logo"><div class="logo-dot"></div>Mapa de Clientes</div>
-    <div style="display:flex;gap:6px;margin-left:12px" id="tabs-container">
-      <button class="tab-btn active" id="tab-mapa">🗺 Mapa</button>
-      <button class="tab-btn"        id="tab-orcamentos">📑 Orçamentos</button>
-      <button class="tab-btn"        id="tab-md">🛡 Ministério da Defesa</button>
-      <button class="tab-btn"        id="tab-geo">🌐 Georreferenciamento</button>
-      <button class="tab-btn"        id="tab-topo">📐 Topografia</button>
-      <button class="tab-btn"        id="tab-outros">⋯ Outros</button>
+    <div class="logo"><div class="logo-dot"></div>Arias Cartografia</div>
+    <nav class="nav">
+      <button class="nav-btn active" id="nav-mapa"   onclick="showView('mapa')">🗺 <span>Mapa</span></button>
+      <div class="nav-sep"></div>
+      <button class="nav-btn" id="nav-orc"    onclick="showView('orc')">📋 <span>Orçamentos</span></button>
+      <button class="nav-btn" id="nav-md"     onclick="showView('md')">🛡 <span>Ministério da Defesa</span></button>
+      <button class="nav-btn" id="nav-geo"    onclick="showView('geo')">📐 <span>Georreferenciamento</span></button>
+      <button class="nav-btn" id="nav-topo"   onclick="showView('topo')">🏔 <span>Topografia</span></button>
+      <button class="nav-btn" id="nav-outros" onclick="showView('outros')">📁 <span>Outros</span></button>
+    </nav>
+    <div class="header-right">
+      <div class="count-pill" id="count-pill">carregando…</div>
     </div>
-    <div class="hspace"></div>
-    <div class="count-pill" id="count-pill">carregando…</div>
   </header>
 
-  <!-- FILTROS (só no mapa) -->
+  <!-- ── FILTER BAR (mapa) ── -->
   <div class="filter-bar" id="filter-bar">
     <span class="flabel">Orçamentos</span>
-      <div class="chip active" id="chip-all">✕</div>
-      <div class="chip won"    id="chip-won">Ganha</div>
-      <div class="chip sent"   id="chip-sent">Enviada</div>
-      <div class="chip neg"    id="chip-neg">Negociação</div>
-      <div class="chip lost"   id="chip-lost">Perdida</div>
+    <button class="chip won"  id="chip-won"  onclick="toggleStatus('won')">Ganha</button>
+    <button class="chip sent" id="chip-sent" onclick="toggleStatus('sent')">Enviada</button>
+    <button class="chip neg"  id="chip-neg"  onclick="toggleStatus('neg')">Negociação</button>
+    <button class="chip lost" id="chip-lost" onclick="toggleStatus('lost')">Perdida</button>
     <div class="fsep"></div>
-    <span class="flabel">Serviços</span>
-    <div id="servico-chips" style="display:flex;gap:5px;flex-wrap:wrap"></div>
-    <button class="chip-clear" id="chip-clear">✕</button>
+    <span class="flabel">Serviço</span>
+    <button class="chip md"   id="chip-md"   onclick="toggleServico('md')">Ministério da Defesa</button>
+    <button class="chip geo"  id="chip-geo"  onclick="toggleServico('geo')">Georreferenciamento</button>
+    <button class="chip topo" id="chip-topo" onclick="toggleServico('topo')">Topografia</button>
+    <button class="chip out"  id="chip-out"  onclick="toggleServico('outros')">Outros</button>
+    <button class="chip-x" onclick="clearFilters()" title="Limpar filtros">✕</button>
   </div>
 
-  <!-- MAPA VIEW -->
-  <div class="map-view" id="map-view">
+  <!-- ── MAPA VIEW ── -->
+  <div class="map-wrap" id="view-mapa">
     <div id="map"></div>
-
-    <div class="detail-panel" id="detail-panel"><!-- JS --></div>
-
+    <div class="detail-panel" id="detail-panel"></div>
     <div class="sidebar">
-      <div class="sb-head"><div class="sb-title">Clientes</div></div>
+      <div class="sb-head">
+        <div class="sb-title">Clientes</div>
+        <div id="sb-count" style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace"></div>
+      </div>
       <div class="sb-list" id="sb-list">
-        <div class="empty-state"><div class="empty-icon">📍</div>Carregando clientes…</div>
+        <div class="empty-state"><div class="empty-icon">📍</div>Carregando…</div>
       </div>
       <div class="stats-row">
         <div class="stat-box"><div class="stat-val" id="s-total">0</div><div class="stat-lbl">Total</div></div>
-        <div class="stat-box"><div class="stat-val" id="s-won">0</div><div class="stat-lbl">Ganhas</div></div>
+        <div class="stat-box"><div class="stat-val" id="s-won">0</div><div class="stat-lbl">Ganhos</div></div>
         <div class="stat-box"><div class="stat-val" id="s-valor">R$0</div><div class="stat-lbl">Valor</div></div>
       </div>
     </div>
   </div>
 
-  <!-- PROJETOS VIEW (Kanban) -->
-  <div class="projects-view" id="projects-view">
-    <div class="pv-header">
-      <div>
-        <div class="pv-title">Gestão de Projetos</div>
-        <div class="pv-sub" id="pv-sub">Acompanhe o andamento de cada cliente</div>
-      </div>
-      <div class="pv-hspace"></div>
-      <input class="pv-search" id="pv-search" placeholder="Buscar cliente…" />
+  <!-- ── ORÇAMENTOS VIEW ── -->
+  <div class="mgmt-view" id="view-orc">
+    <div class="mv-topbar">
+      <div class="mv-title">Orçamentos</div>
+      <div class="mv-sub" id="orc-sub"></div>
+      <div class="mv-space"></div>
+      <input class="mv-search" id="orc-search" placeholder="Buscar empresa…" oninput="renderOrc()"/>
     </div>
     <div style="display:flex;flex:1;overflow:hidden">
-      <div class="kanban" id="kanban"><!-- JS --></div>
-      <div class="proj-detail" id="proj-detail"><!-- JS --></div>
+      <div class="kanban" id="kanban-orc"></div>
+      <div class="proj-detail" id="orc-detail"></div>
     </div>
   </div>
-</div>
+
+  <!-- ── MD VIEW ── -->
+  <div class="mgmt-view" id="view-md">
+    <div class="mv-topbar">
+      <div style="width:8px;height:8px;border-radius:50%;background:var(--md);flex-shrink:0"></div>
+      <div class="mv-title">Ministério da Defesa</div>
+      <div class="mv-sub" id="md-sub"></div>
+      <div class="mv-space"></div>
+      <input class="mv-search" id="md-search" placeholder="Buscar empresa…" oninput="renderMgmt('md')"/>
+    </div>
+    <div style="display:flex;flex:1;overflow:hidden">
+      <div class="kanban" id="kanban-md"></div>
+      <div class="proj-detail" id="md-detail"></div>
+    </div>
+  </div>
+
+  <!-- ── GEO VIEW ── -->
+  <div class="mgmt-view" id="view-geo">
+    <div class="mv-topbar">
+      <div style="width:8px;height:8px;border-radius:50%;background:var(--geo);flex-shrink:0"></div>
+      <div class="mv-title">Georreferenciamento</div>
+      <div class="mv-sub" id="geo-sub"></div>
+      <div class="mv-space"></div>
+      <input class="mv-search" id="geo-search" placeholder="Buscar empresa…" oninput="renderMgmt('geo')"/>
+    </div>
+    <div style="display:flex;flex:1;overflow:hidden">
+      <div class="kanban" id="kanban-geo"></div>
+      <div class="proj-detail" id="geo-detail"></div>
+    </div>
+  </div>
+
+  <!-- ── TOPO VIEW ── -->
+  <div class="mgmt-view" id="view-topo">
+    <div class="mv-topbar">
+      <div style="width:8px;height:8px;border-radius:50%;background:var(--topo);flex-shrink:0"></div>
+      <div class="mv-title">Topografia</div>
+      <div class="mv-sub" id="topo-sub"></div>
+      <div class="mv-space"></div>
+      <input class="mv-search" id="topo-search" placeholder="Buscar empresa…" oninput="renderMgmt('topo')"/>
+    </div>
+    <div style="display:flex;flex:1;overflow:hidden">
+      <div class="kanban" id="kanban-topo"></div>
+      <div class="proj-detail" id="topo-detail"></div>
+    </div>
+  </div>
+
+  <!-- ── OUTROS VIEW ── -->
+  <div class="mgmt-view" id="view-outros">
+    <div class="mv-topbar">
+      <div style="width:8px;height:8px;border-radius:50%;background:var(--out);flex-shrink:0"></div>
+      <div class="mv-title">Outros</div>
+      <div class="mv-sub" id="outros-sub"></div>
+      <div class="mv-space"></div>
+      <input class="mv-search" id="outros-search" placeholder="Buscar empresa…" oninput="renderMgmt('outros')"/>
+    </div>
+    <div style="display:flex;flex:1;overflow:hidden">
+      <div class="kanban" id="kanban-outros"></div>
+      <div class="proj-detail" id="outros-detail"></div>
+    </div>
+  </div>
+
+</div><!-- .page -->
 
 <script>
-// ═══════════════════════════════════════════════════════
-// CONFIGURAÇÃO — altere a URL abaixo para o seu GeoJSON
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════
 const GEOJSON_URL = 'https://raw.githubusercontent.com/ariascartografia-del/clientes-mapa/main/clientes.geojson';
-const PROJECTS_KEY = 'ariascartografia_projetos_v1';
+const PROJ_KEY    = 'ariascartografia_v2';
 
-// ── Etapas do projeto (padrão e por categoria) ──
-const ETAPAS = [
-  { id:'cadastro',       nome:'Cadastro inicial',           cor:'#7c8099' },
-  { id:'aguardando_doc', nome:'Aguardando documentos',      cor:'#f5a623' },
-  { id:'em_processo',    nome:'Em processo',                cor:'#4b9cf5' },
-  { id:'laudo_calib',    nome:'Laudo de calibração',        cor:'#9b6dff' },
-  { id:'enviado_md',     nome:'Enviado para o MD',          cor:'#f57542' },
-  { id:'apresentacao',   nome:'Apresentação institucional', cor:'#1dbe8a' },
-  { id:'portaria',       nome:'Publicação em portaria',     cor:'#e05252' },
-  { id:'finalizado',     nome:'Finalizado',                 cor:'#1dbe8a' },
-];
-
-const ETAPAS_MD = [
-  {id:'cadastro', nome:'Cadastro inicial', cor:'#7c8099'},
-  {id:'documentacao', nome:'Documentação', cor:'#f5a623'},
-  {id:'laudo_calib', nome:'Laudo de calibração', cor:'#9b6dff'},
-  {id:'analise_md', nome:'Análise MD', cor:'#4b9cf5'},
-  {id:'apresentacao', nome:'Apres. Institucional', cor:'#1dbe8a'},
-  {id:'publicacao', nome:'Publicação', cor:'#e05252'},
-  {id:'finalizado', nome:'Finalizado', cor:'#1dbe8a'}
-];
-
-const ETAPAS_GEO = [
-  {id:'analise_doc', nome:'Análise documental', cor:'#7c8099'},
-  {id:'campo', nome:'Campo', cor:'#f5a623'},
-  {id:'geracao', nome:'Geração dos produtos', cor:'#4b9cf5'},
-  {id:'sigef', nome:'SIGEF', cor:'#9b6dff'},
-  {id:'assinaturas', nome:'Assinaturas', cor:'#f57542'},
-  {id:'cartorio', nome:'Cartório', cor:'#1dbe8a'},
-  {id:'finalizado', nome:'Finalizado', cor:'#1dbe8a'}
-];
-
-const ETAPAS_TOPO = [
-  {id:'planejamento', nome:'Planejamento', cor:'#7c8099'},
-  {id:'campo', nome:'Campo', cor:'#f5a623'},
-  {id:'geracao', nome:'Geração dos produtos', cor:'#4b9cf5'},
-  {id:'plotagem', nome:'Plotagem', cor:'#9b6dff'},
-  {id:'cartorio', nome:'Cartório', cor:'#f57542'},
-  {id:'finalizado', nome:'Finalizado', cor:'#1dbe8a'}
-];
-
-const ETAPAS_OUTROS = [
-  {id:'inicial', nome:'Inicial', cor:'#7c8099'},
-  {id:'andamento', nome:'Em andamento', cor:'#4b9cf5'},
-  {id:'finalizado', nome:'Finalizado', cor:'#1dbe8a'}
-];
-
-function mapServiceToCategory(servico){
+// Mapeamento serviço → aba de gestão
+const SERVICO_MAP = {
+  'Ministério da Defesa':'md',
+  'Assessoria + Laudo RGB':'md',
+  'Assessoria + Laudo LiDAR':'md',
+  'Laudo RGB':'md',
+  'Laudo LiDAR':'md',
+  'Laudo RGB e LiDAR':'md',
+  'Assessoria':'md',
+  'Georreferenciamento':'geo',
+  'Topografia':'topo',
+};
+function servicoAba(servico){
   if(!servico) return 'outros';
+  for(const k of Object.keys(SERVICO_MAP)) if(servico.includes(k.split(' ')[0])&&SERVICO_MAP[k]) {/* skip */}
+  // Simples: MD se contém palavras-chave, Geo se 'Georreferenciamento', Topo se 'Topografia'
   const s = servico.toLowerCase();
-  if(s.includes('minist')||s.includes('defesa')||s.includes('md')) return 'md';
-  if(s.includes('georre')||s.includes('sigef')||s.includes('georef')) return 'geo';
-  if(s.includes('topo')||s.includes('topograf')) return 'topo';
+  if(s.includes('georreferenciamento')) return 'geo';
+  if(s.includes('topografia'))          return 'topo';
+  if(s.includes('laudo')||s.includes('assessoria')||s.includes('defesa')||s.includes('md')) return 'md';
   return 'outros';
 }
 
-function getEtapasForCategory(cat){
-  if(cat==='md') return ETAPAS_MD;
-  if(cat==='geo') return ETAPAS_GEO;
-  if(cat==='topo') return ETAPAS_TOPO;
-  if(cat==='outros') return ETAPAS_OUTROS;
-  return ETAPAS;
-}
+// Etapas por aba
+const ETAPAS = {
+  md:    [{id:'cadastro',nome:'Cadastro inicial',cor:'#7c8099'},{id:'documentacao',nome:'Documentação',cor:'#f5a623'},{id:'laudo_calib',nome:'Laudo de calibração',cor:'#9b6dff'},{id:'analise_md',nome:'Análise MD',cor:'#4b9cf5'},{id:'apres',nome:'Apres. Institucional',cor:'#f57542'},{id:'publicacao',nome:'Publicação',cor:'#1dbe8a'},{id:'finalizado',nome:'Finalizado',cor:'#1dbe8a'}],
+  geo:   [{id:'analise_doc',nome:'Análise documental',cor:'#7c8099'},{id:'campo',nome:'Campo',cor:'#f5a623'},{id:'geracao',nome:'Geração dos produtos',cor:'#4b9cf5'},{id:'sigef',nome:'SIGEF',cor:'#9b6dff'},{id:'assinaturas',nome:'Assinaturas',cor:'#f57542'},{id:'cartorio',nome:'Cartório',cor:'#1dbe8a'},{id:'finalizado',nome:'Finalizado',cor:'#1dbe8a'}],
+  topo:  [{id:'planejamento',nome:'Planejamento',cor:'#7c8099'},{id:'campo',nome:'Campo',cor:'#f5a623'},{id:'geracao',nome:'Geração dos produtos',cor:'#4b9cf5'},{id:'plotagem',nome:'Plotagem',cor:'#9b6dff'},{id:'cartorio',nome:'Cartório',cor:'#1dbe8a'},{id:'finalizado',nome:'Finalizado',cor:'#1dbe8a'}],
+  outros:[{id:'inicial',nome:'Inicial',cor:'#7c8099'},{id:'andamento',nome:'Em andamento',cor:'#4b9cf5'},{id:'finalizado',nome:'Finalizado',cor:'#1dbe8a'}],
+};
 
-const STATUS_COLOR = {won:'#1dbe8a',sent:'#4b9cf5',neg:'#f5a623',lost:'#e05252'};
-const STATUS_LABEL = {won:'Ganha',sent:'Enviada',neg:'Em negociação',lost:'Perdida'};
+const STATUS_COLOR={won:'#1dbe8a',sent:'#4b9cf5',neg:'#f5a623',lost:'#e05252'};
+const STATUS_LABEL={won:'Ganha',sent:'Enviada',neg:'Em negociação',lost:'Perdida'};
 
-let map, allFeatures=[], markers=[], projects={};
-let activeStatus='all', activeServico='all', activeMapId=null, activeProjId=null;
+// filtros ativos (conjunto)
+let activeStatus=new Set(), activeServico=new Set();
+let allFeatures=[], projects={}, markers=[];
+let activeMapId=null, activeProjIds={orc:null,md:null,geo:null,topo:null,outros:null};
 let currentView='mapa';
 
-// ── Carrega projetos do localStorage ──
-function loadProjects(){ try{ const r=localStorage.getItem(PROJECTS_KEY); if(r) projects=JSON.parse(r); }catch(e){} }
-function saveProjects(){ try{ localStorage.setItem(PROJECTS_KEY,JSON.stringify(projects)); }catch(e){} }
-function getProj(id){ if(!projects[id]) projects[id]={etapa:'cadastro',notas:'',historico:[]}; return projects[id]; }
-
-// ── Inicializa mapa ──
-map = L.map('map').setView([-15.78,-47.93],4);
+// ── Leaflet ──
+const map = L.map('map').setView([-15.78,-47.93],4);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:18}).addTo(map);
-map.on('click', e=>{ if(!e.originalEvent.target.closest && !e.originalEvent.target.classList.contains('leaflet-marker-icon')) closeDetail(); });
 
-// ── Carrega GeoJSON automaticamente ──
+// ── Persistência ──
+function loadProjects(){ try{const r=localStorage.getItem(PROJ_KEY);if(r)projects=JSON.parse(r);}catch(e){} }
+function saveProjects(){ try{localStorage.setItem(PROJ_KEY,JSON.stringify(projects));}catch(e){} }
+function getProj(id,aba){ if(!projects[id])projects[id]={etapa:(ETAPAS[aba]||ETAPAS.outros)[0].id,notas:'',historico:[],aba}; return projects[id]; }
+
 loadProjects();
 fetchGeoJSON();
 
 async function fetchGeoJSON(){
-  try {
-    // Tenta primeiro via raw do GitHub (sem CORS issues quando hospedado no GitHub Pages)
-    const res = await fetch(GEOJSON_URL);
+  try{
+    const res=await fetch(GEOJSON_URL);
     if(!res.ok) throw new Error('HTTP '+res.status);
-    const geojson = await res.json();
-    processGeoJSON(geojson);
-  } catch(e) {
-    console.warn('Não foi possível carregar GeoJSON remoto:', e.message);
-    // Fallback: dados demo
-    processGeoJSON(getDemoGeoJSON());
-    document.getElementById('count-pill').textContent = '⚠ demo (sem conexão)';
-  } finally {
+    process(await res.json());
+  }catch(e){
+    console.warn('GeoJSON remoto indisponível, usando demo');
+    process(getDemoGeoJSON());
+    document.getElementById('count-pill').textContent='⚠ demo';
+  }finally{
     document.getElementById('loading-bar').style.display='none';
   }
 }
 
-function processGeoJSON(geojson){
-  allFeatures = (geojson.features||[]).filter(f=>f.geometry&&f.geometry.type==='Point');
-  buildServicoChips();
-  renderMap();
-  renderKanban();
-  if(allFeatures.length>0) fitBounds();
-  document.getElementById('count-pill').textContent = allFeatures.length+' cliente'+(allFeatures.length!==1?'s':'');
-  const won = allFeatures.filter(f=>f.properties.status==='won').length;
-  document.getElementById('pv-sub').textContent = `${allFeatures.length} clientes · ${won} ganhos`;
+function process(gj){
+  allFeatures=(gj.features||[]).filter(f=>f.geometry&&f.geometry.type==='Point');
+  const n=allFeatures.length;
+  document.getElementById('count-pill').textContent=n+' cliente'+(n!==1?'s':'');
+  renderMap(); renderOrc();
+  ['md','geo','topo','outros'].forEach(a=>renderMgmt(a));
+  if(n>0) fitBounds();
+  const won=allFeatures.filter(f=>f.properties.status==='won').length;
+  document.getElementById('orc-sub').textContent=`${n} empresas · ${won} ganhos`;
 }
 
-// ════════════════════════
+// ════════════════════
 // VIEWS
-// ════════════════════════
+// ════════════════════
 function showView(v){
   currentView=v;
-  document.getElementById('map-view').style.display     = v==='mapa'?'flex':'none';
-  document.getElementById('projects-view').className    = 'projects-view'+(v!=='mapa'?' active':'');
-  document.getElementById('filter-bar').style.display   = v==='mapa'?'flex':'none';
-  // tabs
-  ['mapa','orcamentos','md','geo','topo','outros'].forEach(k=>{
-    const el=document.getElementById('tab-'+(k==='mapa'? 'mapa': k));
-    if(!el) return; el.className = 'tab-btn'+(v===k? ' active':'');
+  const views=['mapa','orc','md','geo','topo','outros'];
+  views.forEach(id=>{
+    const el=document.getElementById('view-'+id);
+    if(el) el.style.display='none';
+    if(el) el.classList.remove('active');
   });
+  const target=document.getElementById('view-'+v);
+  if(target){
+    if(v==='mapa'){target.style.display='flex';}
+    else{target.style.display='flex';target.classList.add('active');}
+  }
+  views.forEach(id=>{
+    const btn=document.getElementById('nav-'+id);
+    if(btn) btn.classList.toggle('active',id===v);
+  });
+  document.getElementById('filter-bar').style.display=v==='mapa'?'flex':'none';
   if(v==='mapa') setTimeout(()=>map.invalidateSize(),50);
-  else renderKanban();
 }
 
-// ════════════════════════
-// MAPA
-// ════════════════════════
-function buildServicoChips(){
-  const cats = [
-    {id:'md', label:'Ministério da Defesa'},
-    {id:'geo', label:'Georreferenciamento'},
-    {id:'topo', label:'Topografia'},
-    {id:'outros', label:'Outros'},
-  ];
-  const container = document.getElementById('servico-chips'); container.innerHTML='';
-  cats.forEach(c=>{
-    const d = document.createElement('div'); d.className='chip'+(activeServico===c.id?' active':''); d.textContent = c.label;
-    d.addEventListener('click', ()=>{ setServico(c.id); });
-    container.appendChild(d);
-  });
+// ════════════════════
+// FILTROS MAPA
+// ════════════════════
+function toggleStatus(s){
+  if(activeStatus.has(s)) activeStatus.delete(s); else activeStatus.add(s);
+  document.getElementById('chip-'+s).classList.toggle('active',activeStatus.has(s));
+  renderMap();
 }
-
-function setStatus(v){
-  activeStatus=v;
-  ['all','won','sent','neg','lost'].forEach(s=>{
-    const el=document.getElementById('chip-'+s);
-    if(!el) return;
-    el.className='chip'+(s!=='all'?' '+s:'')+(activeStatus===s?' active':'');
-  });
+function toggleServico(s){
+  const ids={md:'chip-md',geo:'chip-geo',topo:'chip-topo',outros:'chip-out'};
+  if(activeServico.has(s)) activeServico.delete(s); else activeServico.add(s);
+  document.getElementById(ids[s]).classList.toggle('active',activeServico.has(s));
+  renderMap();
+}
+function clearFilters(){
+  activeStatus.clear(); activeServico.clear();
+  ['won','sent','neg','lost'].forEach(s=>document.getElementById('chip-'+s).classList.remove('active'));
+  ['chip-md','chip-geo','chip-topo','chip-out'].forEach(id=>document.getElementById(id).classList.remove('active'));
   renderMap();
 }
 
-function setServico(v){ activeServico=activeServico===v?'all':v; buildServicoChips(); renderMap(); }
-function clearFilters(){ activeStatus='all'; activeServico='all'; setStatus('all'); buildServicoChips(); renderMap(); }
-
-function filtered(){
+function filteredFeatures(){
   return allFeatures.filter(f=>{
     const p=f.properties;
-    const cat = mapServiceToCategory(p.servico);
-    return (activeStatus==='all'||p.status===activeStatus)&&(activeServico==='all'||cat===activeServico);
+    const okS=activeStatus.size===0||activeStatus.has(p.status);
+    const okA=activeServico.size===0||activeServico.has(servicoAba(p.servico));
+    return okS&&okA;
   });
 }
 
-function makeIcon(status, etapaColor){
-  const c = STATUS_COLOR[status]||'#888';
-  const hasProj = etapaColor && status==='won';
-  const ring = hasProj ? etapaColor : 'transparent';
-  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36">
-    <path d="M14 0C6.27 0 0 6.27 0 14c0 9.33 14 22 14 22S28 23.33 28 14C28 6.27 21.73 0 14 0z" fill="${c}"/>
-    <circle cx="14" cy="14" r="7" fill="rgba(255,255,255,0.15)"/>
-    <circle cx="14" cy="14" r="5" fill="rgba(255,255,255,0.9)"/>
-  </svg>`;
-  return L.divIcon({
-    html:`<div style="width:28px;height:36px;filter:drop-shadow(0 2px 5px rgba(0,0,0,.5))">${svg}</div>`,
-    iconSize:[28,36],iconAnchor:[14,36],popupAnchor:[0,-36],className:''
-  });
+// ════════════════════
+// MAPA RENDER
+// ════════════════════
+function makeIcon(status){
+  const c=STATUS_COLOR[status]||'#888';
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="26" height="34" viewBox="0 0 26 34"><path d="M13 0C5.82 0 0 5.82 0 13c0 8.67 13 21 13 21S26 21.67 26 13C26 5.82 20.18 0 13 0z" fill="${c}"/><circle cx="13" cy="13" r="5.5" fill="rgba(255,255,255,.88)"/></svg>`;
+  return L.divIcon({html:`<div style="width:26px;height:34px;filter:drop-shadow(0 2px 5px rgba(0,0,0,.5))">${svg}</div>`,iconSize:[26,34],iconAnchor:[13,34],popupAnchor:[0,-34],className:''});
 }
 
 function renderMap(){
   markers.forEach(m=>map.removeLayer(m)); markers=[];
-  const fc=filtered();
+  const fc=filteredFeatures();
   fc.forEach(f=>{
-      const p=f.properties; const id=fid(f);
+    const p=f.properties;
     const [lng,lat]=f.geometry.coordinates;
-    const proj=getProj(id);
-    const cat = mapServiceToCategory(p.servico);
-    const etapa = getEtapasForCategory(cat).find(e=>e.id===proj.etapa) || getEtapasForCategory(cat)[0];
-    const m=L.marker([lat,lng],{icon:makeIcon(p.status, etapa?.cor)});
-    m.bindTooltip(
-      `<div style="font-family:'DM Sans',sans-serif"><b>${escapeHtml(p.empresa||'—')}</b><br><span style="color:#7c8099">${escapeHtml((p.cidade||'') + (p.estado?(', '+p.estado):''))}</span></div>`,
-      {className:'ctt',direction:'top',offset:[0,-4]}
-    );
+    const m=L.marker([lat,lng],{icon:makeIcon(p.status)});
+    m.bindTooltip(`<div style="font-family:'DM Sans',sans-serif"><b>${p.empresa||'—'}</b><br><span style="color:#7c8099">${p.cidade||''}${p.estado?', '+p.estado:''}</span></div>`,{className:'ctt',direction:'top',offset:[0,-4]});
     m.on('click',()=>openMapDetail(f));
     m.addTo(map); markers.push(m);
   });
-
   // sidebar
   const list=document.getElementById('sb-list');
-  if(fc.length===0){
-    list.innerHTML=`<div class="empty-state"><div class="empty-icon">🔍</div>Nenhum cliente neste filtro</div>`;
-  } else {
-    list.innerHTML='';
-    fc.forEach(f=>{
-      const p=f.properties; const id=fid(f);
-      const item = document.createElement('div'); item.className = 'client-item'+(activeMapId===id?' active':''); item.id='mi-'+id;
-      const av = document.createElement('div'); av.className='ci-av'; av.textContent = ini(p.empresa||'?');
-      const info = document.createElement('div'); info.className='ci-info';
-      const name = document.createElement('div'); name.className='ci-name'; name.textContent = p.empresa||'—';
-      const sub = document.createElement('div'); sub.className='ci-sub'; sub.textContent = (p.cidade||'') + (p.estado?(', '+p.estado):'') + ' · ' + (p.servico||'—');
-      info.appendChild(name); info.appendChild(sub);
-      const sdot = document.createElement('div'); sdot.className = 'sdot '+(p.status||'sent');
-      item.appendChild(av); item.appendChild(info); item.appendChild(sdot);
-      item.addEventListener('click', ()=> openMapDetail(f));
-      list.appendChild(item);
-    });
-  }
-  const tot=fc.length, won=fc.filter(f=>f.properties.status==='won').length;
-  const valor=fc.reduce((a,f)=>a+(parseFloat(f.properties.valor)||0),0);
-  document.getElementById('s-total').textContent=tot;
-  document.getElementById('s-won').textContent=won;
-  document.getElementById('s-valor').textContent=valor>=1000?'R$'+(valor/1000).toFixed(0)+'k':'R$'+valor.toFixed(0);
+  list.innerHTML=fc.length===0
+    ?`<div class="empty-state"><div class="empty-icon">🔍</div>Nenhum resultado</div>`
+    :fc.map(f=>{const p=f.properties;const id=fid(f);return `<div class="ci ${activeMapId===id?'active':''}" id="mi-${id}" onclick='openMapDetail(${JSON.stringify(f).replace(/'/g,"&#39;")})'>
+      <div class="ci-av">${ini(p.empresa||'?')}</div>
+      <div class="ci-info"><div class="ci-name">${p.empresa||'—'}</div><div class="ci-sub">${p.cidade||''}${p.estado?', '+p.estado:''}</div></div>
+      <div class="sdot ${p.status||'sent'}"></div></div>`;}).join('');
+  document.getElementById('sb-count').textContent=fc.length;
+  document.getElementById('s-total').textContent=fc.length;
+  document.getElementById('s-won').textContent=fc.filter(f=>f.properties.status==='won').length;
+  const v=fc.reduce((a,f)=>a+(parseFloat(f.properties.valor)||0),0);
+  document.getElementById('s-valor').textContent=v>=1000?'R$'+(v/1000).toFixed(0)+'k':'R$'+v.toFixed(0);
 }
 
 function openMapDetail(f){
   const p=f.properties; const id=fid(f);
   activeMapId=id;
-  document.querySelectorAll('.client-item').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.ci').forEach(el=>el.classList.remove('active'));
   const item=document.getElementById('mi-'+id);
   if(item){item.classList.add('active');item.scrollIntoView({block:'nearest'});}
   const [lng,lat]=f.geometry.coordinates;
   map.flyTo([lat,lng],Math.max(map.getZoom(),10),{duration:.8});
-  const bc=p.status||'sent';
-  const proj=getProj(id);
-  const cat = mapServiceToCategory(p.servico);
-  const etapa = getEtapasForCategory(cat).find(e=>e.id===proj.etapa) || getEtapasForCategory(cat)[0];
-  const panel = document.getElementById('detail-panel');
-  panel.innerHTML='';
-  const hd = document.createElement('div'); hd.className='dp-hd';
-  const av = document.createElement('div'); av.className='dp-av'; av.textContent = ini(p.empresa||'?');
-  const main = document.createElement('div'); main.style.flex='1'; main.style.minWidth='0';
-  const name = document.createElement('div'); name.className='dp-name'; name.textContent = p.empresa||'—';
-  const loc = document.createElement('div'); loc.className='dp-loc'; loc.textContent = '📍 '+((p.cidade||'') + (p.estado?(', '+p.estado):''));
-  main.appendChild(name); main.appendChild(loc);
-  const btnX = document.createElement('button'); btnX.className='dp-x'; btnX.textContent='✕'; btnX.addEventListener('click', closeDetail);
-  hd.appendChild(av); hd.appendChild(main); hd.appendChild(btnX);
-  const body = document.createElement('div'); body.className='dp-body';
-  function addRow(label, value, isHtml){ if(value===null||value===undefined||value==='') return; const row=document.createElement('div'); row.className='dp-row'; const lbl=document.createElement('span'); lbl.className='dp-lbl'; lbl.textContent=label; const val=document.createElement('span'); val.className='dp-val'; if(isHtml){ val.innerHTML = value } else { val.textContent = value } row.appendChild(lbl); row.appendChild(val); body.appendChild(row); }
-  addRow('fid', id);
-  addRow('Empresa', p.empresa||'—');
-  if(p.CPF_CNPJ) addRow('CPF/CNPJ', p.CPF_CNPJ);
-  addRow('Cidade', p.cidade||'—'); addRow('Estado', p.estado||'—');
-  if(p.contato) addRow('Contato', p.contato);
-  if(p.telefone) addRow('Telefone', p.telefone);
-  if(p.email) addRow('Email', p.email);
-  if(p.data_proposta) addRow('Data proposta', fmtD(p.data_proposta));
-  if(p.valor) addRow('Valor', fmtV(p.valor));
-  // status + serviço
-  const statusRow=document.createElement('div'); statusRow.className='dp-row'; const slbl=document.createElement('span'); slbl.className='dp-lbl'; slbl.textContent='Status'; const sval=document.createElement('span'); sval.className='sbadge '+(p.status||'sent'); sval.textContent = STATUS_LABEL[p.status]||p.status; statusRow.appendChild(slbl); statusRow.appendChild(sval); body.appendChild(statusRow);
-  if(p.servico){ const srow=document.createElement('div'); srow.className='dp-row'; const sl=document.createElement('span'); sl.className='dp-lbl'; sl.textContent='Serviço'; const sv=document.createElement('span'); sv.className='dp-val'; sv.textContent = p.servico; srow.appendChild(sl); srow.appendChild(sv); body.appendChild(srow); }
-  if(p.pdf_link && isValidUrl(p.pdf_link)){
-    const hr=document.createElement('hr'); hr.className='dp-div'; body.appendChild(hr);
-    const prow=document.createElement('div'); prow.className='dp-row'; const plbl=document.createElement('span'); plbl.className='dp-lbl'; plbl.textContent='Proposta'; const alink=document.createElement('a'); alink.className='pdf-a'; alink.href=p.pdf_link; alink.target='_blank'; alink.textContent='↗ Abrir PDF'; prow.appendChild(plbl); prow.appendChild(alink); body.appendChild(prow);
-  }
-  if(p.observacoes){ const hr=document.createElement('hr'); hr.className='dp-div'; body.appendChild(hr); const note=document.createElement('div'); note.className='dp-note'; note.textContent = p.observacoes; body.appendChild(note); }
-  const hr2=document.createElement('hr'); hr2.className='dp-div'; body.appendChild(hr2);
-  const etWrap=document.createElement('div'); etWrap.style.fontSize='11px'; etWrap.style.color='var(--muted)'; etWrap.style.marginBottom='4px'; etWrap.textContent='Etapa atual do projeto'; body.appendChild(etWrap);
-  const etBox=document.createElement('div'); etBox.style.display='flex'; etBox.style.alignItems='center'; etBox.style.gap='6px'; etBox.style.padding='7px 9px'; etBox.style.background='var(--surface2)'; etBox.style.borderRadius='8px'; etBox.style.border='1px solid var(--border)'; const dot=document.createElement('div'); dot.style.width='8px'; dot.style.height='8px'; dot.style.borderRadius='50%'; dot.style.background=etapa.cor; dot.style.flexShrink='0'; const etName=document.createElement('span'); etName.style.fontSize='12px'; etName.style.fontWeight='500'; etName.style.color='var(--text)'; etName.textContent=etapa.nome; etBox.appendChild(dot); etBox.appendChild(etName); body.appendChild(etBox);
-  const manageBtn=document.createElement('button'); manageBtn.className='proj-btn'; manageBtn.textContent='📋 Gerenciar projeto'; manageBtn.addEventListener('click', ()=>{ showView((cat==='md'||cat==='geo'||cat==='topo'||cat==='outros')?cat:'orcamentos'); setTimeout(()=>openProjDetail(id),120); }); body.appendChild(manageBtn);
-  panel.appendChild(hd); panel.appendChild(body); panel.classList.add('open');
+  const aba=servicoAba(p.servico);
+  const proj=getProj(id,aba);
+  const etapas=ETAPAS[aba]||ETAPAS.outros;
+  const etapa=etapas.find(e=>e.id===proj.etapa)||etapas[0];
+  // ordem: fid,empresa,cpf_cnpj,cidade,estado,contato,telefone,email,data_proposta,valor,status,servico,pdf_link,observacoes
+  document.getElementById('detail-panel').innerHTML=`
+    <div class="dp-hd">
+      <div class="dp-av">${ini(p.empresa||'?')}</div>
+      <div style="flex:1;min-width:0">
+        <div class="dp-name">${p.empresa||'—'}</div>
+        <div class="dp-loc">📍 ${p.cidade||''}${p.estado?', '+p.estado:''}</div>
+      </div>
+      <button class="dp-x" onclick="closeDetail()">✕</button>
+    </div>
+    <div class="dp-body">
+      ${p.fid?`<div class="dp-row"><span class="dp-lbl">FID</span><span class="dp-val" style="font-family:'DM Mono',monospace;font-size:11px">${p.fid}</span></div>`:''}
+      ${p.CPF_CNPJ?`<div class="dp-row"><span class="dp-lbl">CPF/CNPJ</span><span class="dp-val" style="font-family:'DM Mono',monospace;font-size:11px">${p.CPF_CNPJ}</span></div>`:''}
+      <hr class="dp-div"/>
+      <div class="dp-row"><span class="dp-lbl">Orçamento</span><span class="sbadge ${p.status||'sent'}">${STATUS_LABEL[p.status]||p.status}</span></div>
+      ${p.servico?`<div class="dp-row"><span class="dp-lbl">Serviço</span><span class="dp-val">${p.servico}</span></div>`:''}
+      ${p.data_proposta?`<div class="dp-row"><span class="dp-lbl">Data proposta</span><span class="dp-val">${fmtD(p.data_proposta)}</span></div>`:''}
+      ${p.valor?`<div class="dp-row"><span class="dp-lbl">Valor</span><span class="dp-val">${fmtV(p.valor)}</span></div>`:''}
+      <hr class="dp-div"/>
+      ${p.contato?`<div class="dp-row"><span class="dp-lbl">Contato</span><span class="dp-val">${p.contato}</span></div>`:''}
+      ${p.telefone?`<div class="dp-row"><span class="dp-lbl">Telefone</span><span class="dp-val" style="font-family:'DM Mono',monospace;font-size:11px">${p.telefone}</span></div>`:''}
+      ${p.email?`<div class="dp-row"><span class="dp-lbl">Email</span><span class="dp-val" style="color:var(--sent);font-size:11px">${p.email}</span></div>`:''}
+      ${p.pdf_link?`<hr class="dp-div"/><div class="dp-row"><span class="dp-lbl">Proposta</span><a class="pdf-a" href="${p.pdf_link}" target="_blank">↗ PDF</a></div>`:''}
+      ${p.observacoes?`<hr class="dp-div"/><div class="dp-note">${p.observacoes}</div>`:''}
+      ${p.status==='won'?`<hr class="dp-div"/>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Etapa atual</div>
+        <div style="display:flex;align-items:center;gap:6px;padding:6px 8px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">
+          <div style="width:7px;height:7px;border-radius:50%;background:${etapa.cor}"></div>
+          <span style="font-size:12px;font-weight:500;color:var(--text)">${etapa.nome}</span>
+        </div>
+        <button class="goto-btn" onclick="showView('${aba}');setTimeout(()=>openProjDetail('${id}','${aba}'),80)">📋 Gerenciar projeto →</button>`:''}
+    </div>`;
+  document.getElementById('detail-panel').classList.add('open');
 }
 
 function closeDetail(){
   document.getElementById('detail-panel').classList.remove('open');
-  document.querySelectorAll('.client-item').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.ci').forEach(el=>el.classList.remove('active'));
   activeMapId=null;
 }
-
 function fitBounds(){
-  const coords=allFeatures.map(f=>[f.geometry.coordinates[1],f.geometry.coordinates[0]]);
-  if(coords.length===1){map.setView(coords[0],10);return;}
-  map.fitBounds(L.latLngBounds(coords),{padding:[40,40]});
+  const c=allFeatures.map(f=>[f.geometry.coordinates[1],f.geometry.coordinates[0]]);
+  if(c.length===1){map.setView(c[0],10);return;}
+  map.fitBounds(L.latLngBounds(c),{padding:[40,40]});
 }
 
-// ════════════════════════
-// KANBAN / PROJETOS
-// ════════════════════════
-function renderKanban(){
-  const q=(document.getElementById('pv-search')?.value||'').toLowerCase();
-  const kanban=document.getElementById('kanban');
-  const view = currentView;
+// ════════════════════
+// ORÇAMENTOS KANBAN
+// ════════════════════
+const ORC_COLS=[
+  {id:'sent', nome:'Enviada',   cor:'var(--sent)'},
+  {id:'neg',  nome:'Negociação',cor:'var(--neg)'},
+  {id:'lost', nome:'Perdida',   cor:'var(--lost)'},
+  {id:'won',  nome:'Ganha',     cor:'var(--won)'},
+];
 
-  // ORÇAMENTOS: mostra empresas com status que não são 'won'
-  if(view==='orcamentos'){
-    const cards = allFeatures.filter(f=>{
-      const p=f.properties; if(!p.status) return false;
-      if(p.status==='won') return false; // ganhos vão para gerenciamento
-      if(q){ const s=(p.empresa||'').toLowerCase()+' '+(p.cidade||'').toLowerCase(); if(!s.includes(q)) return false; }
-      return true;
-    });
-    // build DOM
-    kanban.innerHTML='';
-    const kol = document.createElement('div'); kol.className='kol';
-    const kh = document.createElement('div'); kh.className='kol-head';
-    const kcolor = document.createElement('div'); kcolor.className='kol-color'; kcolor.style.background='var(--accent)';
-    const kname = document.createElement('span'); kname.className='kol-name'; kname.textContent='Orçamentos';
-    const kcnt = document.createElement('span'); kcnt.className='kol-cnt'; kcnt.textContent=cards.length;
-    kh.appendChild(kcolor); kh.appendChild(kname); kh.appendChild(kcnt);
-    const kcards = document.createElement('div'); kcards.className='kol-cards';
-    if(cards.length===0){ const empty=document.createElement('div'); empty.style.height='40px'; kcards.appendChild(empty); }
-    cards.forEach(f=>{
-      const p=f.properties; const id=fid(f); const proj=getProj(id);
-      const dias=proj.historico?.length>0?Math.floor((Date.now()-new Date(proj.historico[0].data))/(1000*60*60*24)):0;
-      const card=document.createElement('div'); card.className='kard'+(activeProjId===id?' active':''); card.style.borderLeftColor = p.status==='won'?'var(--won)':'var(--border)';
-      card.addEventListener('click', ()=>openProjDetail(id));
-      const cname=document.createElement('div'); cname.className='kard-name'; cname.textContent = p.empresa||'—';
-      const cmeta=document.createElement('div'); cmeta.className='kard-meta'; cmeta.innerHTML = escapeHtml((p.cidade||'') + (p.estado?(', '+p.estado):'') ) + '<br>' + escapeHtml(p.contato||'');
-      card.appendChild(cname); card.appendChild(cmeta);
-      if(p.servico){ const cs = document.createElement('div'); cs.className='kard-service'; cs.textContent = p.servico; card.appendChild(cs); }
-      const cfooter = document.createElement('div'); cfooter.className='kard-footer'; const cdays = document.createElement('span'); cdays.className='kard-days'; cdays.textContent = dias>0?dias+'d':''; cfooter.appendChild(cdays); card.appendChild(cfooter);
-      kcards.appendChild(card);
-    });
-    kol.appendChild(kh); kol.appendChild(kcards); kanban.appendChild(kol);
-    return;
-  }
-
-  // Gerenciamento por categoria (md, geo, topo, outros)
-  if(['md','geo','topo','outros'].includes(view)){
-    const etapas = getEtapasForCategory(view);
-    const wonCards = allFeatures.filter(f=>{
-      const p=f.properties; if(!p.status) return false; if(p.status!=='won') return false;
-      if(mapServiceToCategory(p.servico)!==view) return false;
-      if(q){ const s=(p.empresa||'').toLowerCase()+' '+(p.cidade||'').toLowerCase(); if(!s.includes(q)) return false; }
-      return true;
-    });
-    // build DOM columns per etapa
-    kanban.innerHTML='';
-    etapas.forEach(etapa=>{
-      const col = document.createElement('div'); col.className='kol';
-      const kh = document.createElement('div'); kh.className='kol-head';
-      const kcolor = document.createElement('div'); kcolor.className='kol-color'; kcolor.style.background=etapa.cor;
-      const kname = document.createElement('span'); kname.className='kol-name'; kname.textContent=etapa.nome;
-      const cards = wonCards.filter(f=>getProj(fid(f)).etapa===etapa.id);
-      const kcnt = document.createElement('span'); kcnt.className='kol-cnt'; kcnt.textContent=cards.length;
-      kh.appendChild(kcolor); kh.appendChild(kname); kh.appendChild(kcnt);
-      const kcards = document.createElement('div'); kcards.className='kol-cards';
-      if(cards.length===0){ const empty=document.createElement('div'); empty.style.height='40px'; kcards.appendChild(empty); }
-      cards.forEach(f=>{
-        const p=f.properties; const id=fid(f); const proj=getProj(id);
-        const etapaIdx = etapas.findIndex(e=>e.id===proj.etapa);
-        const isFirst = etapaIdx===0, isLast = etapaIdx===etapas.length-1;
-        const dias=proj.historico?.length>0?Math.floor((Date.now()-new Date(proj.historico[0].data))/(1000*60*60*24)):0;
-        const card = document.createElement('div'); card.className='kard'+(activeProjId===id?' active':''); card.style.borderLeftColor='var(--won)';
-        card.addEventListener('click', ()=>openProjDetail(id));
-        const cname = document.createElement('div'); cname.className='kard-name'; cname.textContent = p.empresa||'—';
-        const cmeta = document.createElement('div'); cmeta.className='kard-meta'; cmeta.innerHTML = escapeHtml((p.cidade||'') + (p.estado?(', '+p.estado):'')) + '<br>' + escapeHtml(p.contato||'');
-        card.appendChild(cname); card.appendChild(cmeta);
-        if(p.servico){ const cs=document.createElement('div'); cs.className='kard-service'; cs.textContent = p.servico; card.appendChild(cs); }
-        const footer = document.createElement('div'); footer.className='kard-footer'; const days = document.createElement('span'); days.className='kard-days'; days.textContent = dias>0?dias+'d':''; footer.appendChild(days);
-        const moves = document.createElement('div'); moves.className='kard-move-btns';
-        if(!isFirst){ const b=document.createElement('button'); b.className='move-btn'; b.title='Etapa anterior'; b.textContent='←'; b.addEventListener('click', (e)=>moveEtapa(e,id,-1)); moves.appendChild(b); }
-        if(!isLast){ const b=document.createElement('button'); b.className='move-btn'; b.title='Próxima etapa'; b.textContent='→'; b.addEventListener('click', (e)=>moveEtapa(e,id,1)); moves.appendChild(b); }
-        footer.appendChild(moves); card.appendChild(footer);
-        kcards.appendChild(card);
-      });
-      col.appendChild(kh); col.appendChild(kcards); kanban.appendChild(col);
-    });
-    return;
-  }
-
-  // Default fallback
-  kanban.innerHTML = '<div class="empty-state">Selecione uma visão</div>';
+function renderOrc(){
+  const q=(document.getElementById('orc-search')?.value||'').toLowerCase();
+  const features=allFeatures.filter(f=>!q||(f.properties.empresa||'').toLowerCase().includes(q)||(f.properties.cidade||'').toLowerCase().includes(q));
+  const kanban=document.getElementById('kanban-orc');
+  kanban.innerHTML=ORC_COLS.map(col=>{
+    const cards=features.filter(f=>f.properties.status===col.id);
+    const cardsHtml=cards.map(f=>{
+      const p=f.properties; const id=fid(f);
+      return `<div class="kard ${activeProjIds.orc===id?'sel':''}" onclick="openOrcDetail('${id}')">
+        <div class="kard-name">${p.empresa||'—'}</div>
+        <div class="kard-meta">${p.cidade||''}${p.estado?', '+p.estado:''}<br>${p.contato||''}</div>
+        ${p.servico?`<div class="kard-tag" style="background:var(--surface3);color:var(--muted2);border:1px solid var(--border)">${p.servico}</div>`:''}
+        ${p.valor?`<div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-top:5px">${fmtV(p.valor)}</div>`:''}
+        ${p.data_proposta?`<div style="font-size:10px;color:var(--muted);margin-top:2px">${fmtD(p.data_proposta)}</div>`:''}
+      </div>`;
+    }).join('');
+    return `<div class="kol">
+      <div class="kol-hd"><div class="kol-dot" style="background:${col.cor}"></div><span class="kol-name">${col.nome}</span><span class="kol-cnt">${cards.length}</span></div>
+      <div class="kol-cards">${cardsHtml||'<div style="height:40px"></div>'}</div>
+    </div>`;
+  }).join('');
 }
 
-function moveEtapa(e, id, dir){
+function openOrcDetail(id){
+  activeProjIds.orc=id;
+  const f=allFeatures.find(f=>fid(f)===id); if(!f) return;
+  const p=f.properties;
+  const aba=servicoAba(p.servico);
+  document.getElementById('orc-detail').innerHTML=buildDetailHTML(f,aba,'orc');
+  document.getElementById('orc-detail').classList.add('open');
+  renderOrc();
+}
+
+// ════════════════════
+// GESTÃO (MD/GEO/TOPO/OUTROS)
+// ════════════════════
+const MGMT_COLORS={md:'var(--md)',geo:'var(--geo)',topo:'var(--topo)',outros:'var(--out)'};
+
+function renderMgmt(aba){
+  const sid=aba+'-search';
+  const q=(document.getElementById(sid)?.value||'').toLowerCase();
+  // só clientes ganhos + serviço correspondente
+  const features=allFeatures.filter(f=>{
+    const p=f.properties;
+    if(p.status!=='won') return false;
+    if(servicoAba(p.servico)!==aba) return false;
+    if(q&&!(p.empresa||'').toLowerCase().includes(q)&&!(p.cidade||'').toLowerCase().includes(q)) return false;
+    return true;
+  });
+  const etapas=ETAPAS[aba]||ETAPAS.outros;
+  const sub=document.getElementById(aba+'-sub');
+  if(sub) sub.textContent=`${features.length} projeto${features.length!==1?'s':''}`;
+  const kanban=document.getElementById('kanban-'+aba);
+  kanban.innerHTML=etapas.map((etapa,ei)=>{
+    const cards=features.filter(f=>getProj(fid(f),aba).etapa===etapa.id);
+    const cardsHtml=cards.map(f=>{
+      const p=f.properties; const id=fid(f);
+      const proj=getProj(id,aba);
+      const etapaIdx=etapas.findIndex(e=>e.id===proj.etapa);
+      const dias=proj.historico?.length>0?Math.floor((Date.now()-new Date(proj.historico[0].data))/(86400000)):0;
+      const isFirst=etapaIdx===0, isLast=etapaIdx===etapas.length-1;
+      return `<div class="kard ${activeProjIds[aba]===id?'sel':''}" onclick="openProjDetail('${id}','${aba}')" style="border-left-color:${etapa.cor}">
+        <div class="kard-name">${p.empresa||'—'}</div>
+        <div class="kard-meta">${p.cidade||''}${p.estado?', '+p.estado:''}<br>${p.contato||''}</div>
+        ${p.servico?`<div class="kard-tag" style="background:var(--surface3);color:var(--muted2);border:1px solid var(--border)">${p.servico}</div>`:''}
+        <div class="kard-footer">
+          <span class="kard-days">${dias>0?dias+'d':''}</span>
+          <div class="mbts">
+            ${!isFirst?`<button class="mbt" onclick="moveEtapa(event,'${id}','${aba}',-1)" title="Voltar etapa">←</button>`:''}
+            ${!isLast?`<button class="mbt" onclick="moveEtapa(event,'${id}','${aba}',1)" title="Avançar etapa">→</button>`:''}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+    return `<div class="kol">
+      <div class="kol-hd"><div class="kol-dot" style="background:${etapa.cor}"></div><span class="kol-name">${etapa.nome}</span><span class="kol-cnt">${cards.length}</span></div>
+      <div class="kol-cards">${cardsHtml||'<div style="height:40px"></div>'}</div>
+    </div>`;
+  }).join('');
+}
+
+function moveEtapa(e,id,aba,dir){
   e.stopPropagation();
-  const proj=getProj(id);
-  const f = allFeatures.find(ff=>fid(ff)===id);
-  const cat = f?mapServiceToCategory(f.properties.servico):null;
-  const etapas = getEtapasForCategory(cat);
-  const idx = etapas.findIndex(et=>et.id===proj.etapa);
-  const newIdx = Math.max(0, Math.min(etapas.length-1, idx+dir));
-  if(newIdx===idx) return;
-  proj.etapa = etapas[newIdx].id;
-  proj.historico = proj.historico||[];
+  const proj=getProj(id,aba);
+  const etapas=ETAPAS[aba]||ETAPAS.outros;
+  const idx=etapas.findIndex(et=>et.id===proj.etapa);
+  const ni=Math.max(0,Math.min(etapas.length-1,idx+dir));
+  if(ni===idx) return;
+  proj.etapa=etapas[ni].id;
+  proj.historico=proj.historico||[];
   proj.historico.push({etapa:proj.etapa,data:new Date().toISOString()});
   saveProjects();
-  renderKanban();
-  if(activeProjId===id) openProjDetail(id);
+  renderMgmt(aba);
+  if(activeProjIds[aba]===id) openProjDetail(id,aba);
 }
 
-function openProjDetail(id){
-  activeProjId=id;
-  const f=allFeatures.find(f=>fid(f)===id);
-  if(!f) return;
-  const p=f.properties;
-  const proj=getProj(id);
-  const cat = mapServiceToCategory(p.servico);
-  const etapas = getEtapasForCategory(cat);
-  const etapaAtualIdx = etapas.findIndex(e=>e.id===proj.etapa);
-
-  // timeline DOM is built below (securely)
-
-  // Build proj-detail DOM safely
-  const container = document.getElementById('proj-detail'); container.innerHTML='';
-  const pdhd = document.createElement('div'); pdhd.className='pd-hd';
-  const avatar = document.createElement('div'); avatar.style.width='34px'; avatar.style.height='34px'; avatar.style.borderRadius='8px'; avatar.style.background='rgba(29,190,138,.15)'; avatar.style.color='var(--accent)'; avatar.style.display='flex'; avatar.style.alignItems='center'; avatar.style.justifyContent='center'; avatar.style.fontWeight='700'; avatar.style.fontSize='11px'; avatar.textContent = ini(p.empresa||'?');
-  const titleWrap = document.createElement('div');
-  const pdname = document.createElement('div'); pdname.className='pd-name'; pdname.textContent = p.empresa||'—';
-  const pdl = document.createElement('div'); pdl.className='pd-loc'; pdl.textContent = '📍 '+((p.cidade||'') + (p.estado?(', '+p.estado):''));
-  titleWrap.appendChild(pdname); titleWrap.appendChild(pdl);
-  const closeBtn = document.createElement('button'); closeBtn.style.marginLeft='auto'; closeBtn.style.background='none'; closeBtn.style.border='none'; closeBtn.style.color='var(--muted)'; closeBtn.style.cursor='pointer'; closeBtn.style.fontSize='15px'; closeBtn.textContent='✕'; closeBtn.addEventListener('click', closeProjDetail);
-  pdhd.appendChild(avatar); pdhd.appendChild(titleWrap); pdhd.appendChild(closeBtn);
-  const headBadges = document.createElement('div'); headBadges.style.display='flex'; headBadges.style.gap='5px'; headBadges.style.flexWrap='wrap';
-  const sb = document.createElement('span'); sb.className='sbadge '+(p.status||'sent'); sb.textContent = STATUS_LABEL[p.status]||'—'; headBadges.appendChild(sb);
-  if(p.servico){ const ssp = document.createElement('span'); ssp.style.padding='2px 8px'; ssp.style.borderRadius='10px'; ssp.style.fontSize='10px'; ssp.style.fontWeight='500'; ssp.style.background='rgba(29,190,138,.1)'; ssp.style.color='var(--accent)'; ssp.style.border='1px solid rgba(29,190,138,.2)'; ssp.textContent = p.servico; headBadges.appendChild(ssp); }
-  pdhd.appendChild(headBadges);
-
-  const pdbody = document.createElement('div'); pdbody.className='pd-body';
-  const sec = document.createElement('div'); sec.className='pd-section'; sec.textContent='Progresso do projeto'; pdbody.appendChild(sec);
-  const etapasList = document.createElement('div'); etapasList.className='etapas-list';
-  etapas.forEach((et,i)=>{
-    const row = document.createElement('div'); row.className='etapa-row'; row.title='Ir para esta etapa'; row.addEventListener('click', ()=> setEtapaDirectly(id,i));
-    const line = document.createElement('div'); line.className='etapa-line';
-    const circle = document.createElement('div'); circle.className='etapa-circle '+(i<etapaAtualIdx?'done':i===etapaAtualIdx?'current':'');
-    if(i<etapaAtualIdx){ const ch = document.createElement('span'); ch.className='checkmark'; ch.textContent='✓'; circle.appendChild(ch); }
-    else if(i===etapaAtualIdx){ const dot = document.createElement('div'); dot.style.width='6px'; dot.style.height='6px'; dot.style.borderRadius='50%'; dot.style.background='var(--sent)'; circle.appendChild(dot); }
-    line.appendChild(circle);
-    if(i<etapas.length-1){ const conn = document.createElement('div'); conn.className='etapa-connector '+(i<etapaAtualIdx?'done':''); line.appendChild(conn); }
-    const etText = document.createElement('div'); etText.className='etapa-text';
-    const etName = document.createElement('div'); etName.className='etapa-name '+(i<etapaAtualIdx?'done':i===etapaAtualIdx?'current':''); etName.textContent = et.nome;
-    const hist = proj.historico?.find(h=>h.etapa===et.id); if(hist){ const d = document.createElement('div'); d.className='etapa-date'; d.textContent = fmtD(hist.data.split('T')[0]); etText.appendChild(etName); etText.appendChild(d); } else { etText.appendChild(etName); }
-    row.appendChild(line); row.appendChild(etText); etapasList.appendChild(row);
-  });
-  pdbody.appendChild(etapasList);
-  const hr = document.createElement('hr'); hr.style.border='none'; hr.style.borderTop='1px solid var(--border)'; hr.style.margin='4px 0'; pdbody.appendChild(hr);
-  const sec2 = document.createElement('div'); sec2.className='pd-section'; sec2.textContent='Alterar etapa'; pdbody.appendChild(sec2);
-  const selRow = document.createElement('div'); selRow.className='etapa-select-row';
-  const sel = document.createElement('select'); sel.className='etapa-select'; sel.id='etapa-sel-'+id;
-  etapas.forEach(et=>{ const opt = document.createElement('option'); opt.value=et.id; if(proj.etapa===et.id) opt.selected=true; opt.textContent=et.nome; sel.appendChild(opt); });
-  const saveBtn = document.createElement('button'); saveBtn.className='etapa-save-btn'; saveBtn.textContent='Salvar'; saveBtn.addEventListener('click', ()=> saveEtapa(id));
-  selRow.appendChild(sel); selRow.appendChild(saveBtn); pdbody.appendChild(selRow);
-  const hr2 = document.createElement('hr'); hr2.style.border='none'; hr2.style.borderTop='1px solid var(--border)'; hr2.style.margin='4px 0'; pdbody.appendChild(hr2);
-  const sec3 = document.createElement('div'); sec3.className='pd-section'; sec3.textContent='Notas internas'; pdbody.appendChild(sec3);
-  const ta = document.createElement('textarea'); ta.className='notes-area'; ta.id='notes-'+id; ta.placeholder='Anotações sobre este projeto…'; ta.value = proj.notas||''; pdbody.appendChild(ta);
-  const saveNotesBtn = document.createElement('button'); saveNotesBtn.className='notes-save-btn'; saveNotesBtn.textContent='Salvar notas'; saveNotesBtn.addEventListener('click', ()=> saveNotes(id)); pdbody.appendChild(saveNotesBtn);
-  // contato
-  if(p.email||p.telefone){ const hr3=document.createElement('hr'); hr3.style.border='none'; hr3.style.borderTop='1px solid var(--border)'; hr3.style.margin='4px 0'; pdbody.appendChild(hr3); const sct = document.createElement('div'); sct.className='pd-section'; sct.textContent='Contato'; pdbody.appendChild(sct); if(p.contato){ const r=document.createElement('div'); r.className='pd-row'; const lbl=document.createElement('span'); lbl.className='pd-lbl'; lbl.textContent='Nome'; const val=document.createElement('span'); val.className='pd-val'; val.textContent=p.contato; r.appendChild(lbl); r.appendChild(val); pdbody.appendChild(r); } if(p.telefone){ const r=document.createElement('div'); r.className='pd-row'; const lbl=document.createElement('span'); lbl.className='pd-lbl'; lbl.textContent='Telefone'; const val=document.createElement('span'); val.className='pd-val'; val.style.fontFamily="'DM Mono', monospace"; val.style.fontSize='11px'; val.textContent=p.telefone; r.appendChild(lbl); r.appendChild(val); pdbody.appendChild(r); } if(p.email){ const r=document.createElement('div'); r.className='pd-row'; const lbl=document.createElement('span'); lbl.className='pd-lbl'; lbl.textContent='Email'; const val=document.createElement('span'); val.className='pd-val'; val.style.color='var(--sent)'; val.style.fontSize='11px'; val.textContent=p.email; r.appendChild(lbl); r.appendChild(val); pdbody.appendChild(r); } }
-  if(p.pdf_link && isValidUrl(p.pdf_link)){ const hr4=document.createElement('hr'); hr4.style.border='none'; hr4.style.borderTop='1px solid var(--border)'; hr4.style.margin='4px 0'; pdbody.appendChild(hr4); const a = document.createElement('a'); a.className='pdf-a'; a.href=p.pdf_link; a.target='_blank'; a.textContent='↗ Abrir proposta PDF'; pdbody.appendChild(a); }
-  container.appendChild(pdhd); container.appendChild(pdbody); container.classList.add('open'); renderKanban();
+function openProjDetail(id,aba){
+  activeProjIds[aba]=id;
+  const f=allFeatures.find(f=>fid(f)===id); if(!f) return;
+  const detailEl=document.getElementById(aba+'-detail');
+  if(!detailEl) return;
+  detailEl.innerHTML=buildDetailHTML(f,aba,aba);
+  detailEl.classList.add('open');
+  if(aba!=='orc') renderMgmt(aba);
 }
 
-function closeProjDetail(){
-  document.getElementById('proj-detail').classList.remove('open');
-  activeProjId=null; renderKanban();
+function buildDetailHTML(f,aba,key){
+  const p=f.properties; const id=fid(f);
+  const etapas=aba==='orc'?null:(ETAPAS[aba]||ETAPAS.outros);
+  const proj=aba!=='orc'?getProj(id,aba):null;
+  const etapaAtualIdx=proj?etapas.findIndex(e=>e.id===proj.etapa):0;
+
+  const timeline=etapas?etapas.map((et,i)=>{
+    const isDone=i<etapaAtualIdx, isCur=i===etapaAtualIdx;
+    const hist=proj.historico?.find(h=>h.etapa===et.id);
+    return `<div class="tl-row" onclick="setEtapaDirect('${id}','${aba}',${i})" title="${et.nome}">
+      <div class="tl-line">
+        <div class="tl-circle ${isDone?'done':isCur?'cur':''}">${isDone?'<span class="ck">✓</span>':isCur?`<div style="width:5px;height:5px;border-radius:50%;background:var(--sent)"></div>`:''}</div>
+        ${i<etapas.length-1?`<div class="tl-conn ${isDone?'done':''}"></div>`:''}
+      </div>
+      <div class="tl-label">
+        <div class="tl-name ${isDone?'done':isCur?'cur':''}">${et.nome}</div>
+        ${hist?`<div class="tl-date">${fmtD(hist.data.split('T')[0])}</div>`:''}
+      </div>
+    </div>`;
+  }).join(''):'';
+
+  // Detalhes do cliente em ordem: fid, empresa, CPF_CNPJ, cidade, estado, contato, telefone, email, data_proposta, valor, status, servico, pdf_link, observacoes
+  return `
+    <div class="pd-hd">
+      <div class="pd-top">
+        <div class="pd-av">${ini(p.empresa||'?')}</div>
+        <div style="flex:1;min-width:0">
+          <div class="pd-name">${p.empresa||'—'}</div>
+          <div class="pd-loc">📍 ${p.cidade||''}${p.estado?', '+p.estado:''}</div>
+        </div>
+        <button class="pd-x" onclick="closeProjDetail('${key}')">✕</button>
+      </div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap">
+        <span class="sbadge ${p.status||'sent'}">${STATUS_LABEL[p.status]||'—'}</span>
+        ${p.servico?`<span style="padding:2px 7px;border-radius:10px;font-size:10px;font-weight:500;background:var(--surface3);color:var(--muted2);border:1px solid var(--border)">${p.servico}</span>`:''}
+      </div>
+    </div>
+    <div class="pd-body">
+      ${p.fid?`<div class="pd-row"><span class="pd-lbl">FID</span><span class="pd-val" style="font-family:'DM Mono',monospace;font-size:11px">${p.fid}</span></div>`:''}
+      ${p.CPF_CNPJ?`<div class="pd-row"><span class="pd-lbl">CPF/CNPJ</span><span class="pd-val" style="font-family:'DM Mono',monospace;font-size:11px">${p.CPF_CNPJ}</span></div>`:''}
+      ${p.cidade?`<div class="pd-row"><span class="pd-lbl">Cidade</span><span class="pd-val">${p.cidade}${p.estado?', '+p.estado:''}</span></div>`:''}
+      ${p.contato?`<div class="pd-row"><span class="pd-lbl">Contato</span><span class="pd-val">${p.contato}</span></div>`:''}
+      ${p.telefone?`<div class="pd-row"><span class="pd-lbl">Telefone</span><span class="pd-val" style="font-family:'DM Mono',monospace;font-size:11px">${p.telefone}</span></div>`:''}
+      ${p.email?`<div class="pd-row"><span class="pd-lbl">Email</span><span class="pd-val" style="color:var(--sent);font-size:11px">${p.email}</span></div>`:''}
+      ${p.data_proposta?`<div class="pd-row"><span class="pd-lbl">Data proposta</span><span class="pd-val">${fmtD(p.data_proposta)}</span></div>`:''}
+      ${p.valor?`<div class="pd-row"><span class="pd-lbl">Valor</span><span class="pd-val">${fmtV(p.valor)}</span></div>`:''}
+      ${p.pdf_link?`<div class="pd-row"><span class="pd-lbl">Proposta</span><a class="pdf-a" href="${p.pdf_link}" target="_blank">↗ PDF</a></div>`:''}
+      ${p.observacoes?`<div style="background:var(--surface2);border-radius:8px;padding:7px 9px;font-size:11px;color:var(--muted);line-height:1.6">${p.observacoes}</div>`:''}
+      ${etapas?`
+        <hr style="border:none;border-top:1px solid var(--border)"/>
+        <div class="pd-section">Progresso</div>
+        <div class="tl">${timeline}</div>
+        <hr style="border:none;border-top:1px solid var(--border)"/>
+        <div class="pd-section">Alterar etapa</div>
+        <div class="etapa-sel-row">
+          <select class="etapa-sel" id="esel-${id}-${aba}">
+            ${etapas.map(et=>`<option value="${et.id}" ${proj.etapa===et.id?'selected':''}>${et.nome}</option>`).join('')}
+          </select>
+          <button class="etapa-save" onclick="saveEtapa('${id}','${aba}')">OK</button>
+        </div>
+        <hr style="border:none;border-top:1px solid var(--border)"/>
+        <div class="pd-section">Notas</div>
+        <textarea class="notes-ta" id="nta-${id}-${aba}" placeholder="Anotações internas…">${proj.notas||''}</textarea>
+        <button class="notes-save" onclick="saveNotes('${id}','${aba}')">Salvar notas</button>
+      `:''}
+    </div>`;
 }
 
-function saveEtapa(id){
-  const sel=document.getElementById('etapa-sel-'+id);
-  if(!sel) return;
-  const proj=getProj(id);
-  const novaEtapa=sel.value;
-  if(proj.etapa===novaEtapa) return;
-  proj.etapa=novaEtapa;
+function closeProjDetail(key){
+  const el=document.getElementById(key+'-detail');
+  if(el) el.classList.remove('open');
+  activeProjIds[key]=null;
+  if(key!=='orc') renderMgmt(key);
+  else renderOrc();
+}
+
+function saveEtapa(id,aba){
+  const sel=document.getElementById(`esel-${id}-${aba}`); if(!sel) return;
+  const proj=getProj(id,aba);
+  if(proj.etapa===sel.value) return;
+  proj.etapa=sel.value;
   proj.historico=proj.historico||[];
-  proj.historico.push({etapa:novaEtapa,data:new Date().toISOString()});
-  saveProjects();
-  openProjDetail(id); // re-render
+  proj.historico.push({etapa:proj.etapa,data:new Date().toISOString()});
+  saveProjects(); openProjDetail(id,aba);
 }
 
-function setEtapaDirectly(id, idx){
-  const proj=getProj(id);
-  const f = allFeatures.find(ff=>fid(ff)===id);
-  const cat = f?mapServiceToCategory(f.properties.servico):null;
-  const etapas = getEtapasForCategory(cat);
-  const novaEtapa = etapas[idx].id;
-  if(proj.etapa===novaEtapa) return;
-  proj.etapa=novaEtapa;
+function setEtapaDirect(id,aba,idx){
+  const etapas=ETAPAS[aba]||ETAPAS.outros;
+  const proj=getProj(id,aba);
+  if(proj.etapa===etapas[idx].id) return;
+  proj.etapa=etapas[idx].id;
   proj.historico=proj.historico||[];
-  proj.historico.push({etapa:novaEtapa,data:new Date().toISOString()});
-  saveProjects();
-  openProjDetail(id);
+  proj.historico.push({etapa:proj.etapa,data:new Date().toISOString()});
+  saveProjects(); openProjDetail(id,aba);
 }
 
-function saveNotes(id){
-  const ta=document.getElementById('notes-'+id);
-  if(!ta) return;
-  const proj=getProj(id);
-  proj.notas=ta.value;
+function saveNotes(id,aba){
+  const ta=document.getElementById(`nta-${id}-${aba}`); if(!ta) return;
+  getProj(id,aba).notas=ta.value;
   saveProjects();
   ta.style.borderColor='var(--accent)';
-  setTimeout(()=>ta.style.borderColor='',1200);
+  setTimeout(()=>ta.style.borderColor='',1400);
 }
 
-// ════════════════════════
+// ════════════════════
 // UTILS
-// ════════════════════════
-function fid(f){ const p=f.properties; return btoa(encodeURIComponent((p.empresa||'')+'_'+(f.geometry.coordinates||[]).join('_'))).replace(/=/g,''); }
-function ini(n){ return n.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
-function esc(s){ return s.replace(/'/g,"\\'"); }
-function fmtV(n){ return n?'R$ '+Number(n).toLocaleString('pt-BR',{minimumFractionDigits:2}):'—'; }
-function fmtD(s){ if(!s) return '—'; try{ return new Date(s+'T00:00:00').toLocaleDateString('pt-BR'); }catch(e){ return s; } }
-
-// Segurança: escape para texto e validação de URLs
-function escapeHtml(str){
-  if(str===null||str===undefined) return '';
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+// ════════════════════
+function fid(f){
+  const p=f.properties;
+  return btoa(encodeURIComponent((p.fid||p.empresa||'')+'_'+(f.geometry.coordinates||[]).join('_'))).replace(/[=+/]/g,'_');
 }
-function isValidUrl(u){ try{ const url=new URL(u); return url.protocol==='http:'||url.protocol==='https:' }catch(e){return false} }
+function ini(n){ return n.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
+function fmtV(n){ return n?'R$ '+Number(n).toLocaleString('pt-BR',{minimumFractionDigits:2}):'—'; }
+function fmtD(s){ if(!s) return '—'; try{ return new Date(s.includes('T')?s:s+'T00:00:00').toLocaleDateString('pt-BR'); }catch(e){ return s; } }
 
-// ── Demo data (fallback quando sem internet) ──
+// ════════════════════
+// DEMO DATA
+// ════════════════════
 function getDemoGeoJSON(){
   return {type:"FeatureCollection",features:[
-    {type:"Feature",geometry:{type:"Point",coordinates:[-47.8103,-21.1775]},properties:{empresa:"Agro São Paulo",cidade:"Ribeirão Preto",estado:"SP",contato:"Carlos Mendes",telefone:"(16) 99234-5678",email:"carlos@agrosp.com.br",data_proposta:"2024-11-10",valor:45000,status:"won",servico:"Assessoria + Laudo RGB",pdf_link:"",observacoes:"Cliente interessado em expansão."}},
-    {type:"Feature",geometry:{type:"Point",coordinates:[-34.877,-8.0476]},properties:{empresa:"Tech Recife",cidade:"Recife",estado:"PE",contato:"Ana Lima",telefone:"(81) 98765-4321",email:"ana@techrecife.com",data_proposta:"2024-12-05",valor:28000,status:"sent",servico:"Laudo LiDAR",pdf_link:"",observacoes:"Aguardando retorno."}},
-    {type:"Feature",geometry:{type:"Point",coordinates:[-51.2177,-30.0346]},properties:{empresa:"Construções Sul",cidade:"Porto Alegre",estado:"RS",contato:"Marcos Oliveira",telefone:"(51) 97654-3210",email:"marcos@construcaosul.com",data_proposta:"2024-10-22",valor:92000,status:"neg",servico:"Assessoria",pdf_link:"",observacoes:"Negociando prazo."}},
-    {type:"Feature",geometry:{type:"Point",coordinates:[-38.5014,-12.9714]},properties:{empresa:"Saúde Nordeste",cidade:"Salvador",estado:"BA",contato:"Fernanda Costa",telefone:"(71) 96543-2109",email:"fcosta@saudene.com",data_proposta:"2024-09-15",valor:67000,status:"won",servico:"Laudo RGB",pdf_link:"",observacoes:"Contrato assinado."}},
-    {type:"Feature",geometry:{type:"Point",coordinates:[-49.2648,-16.6869]},properties:{empresa:"Varejo Centro-Oeste",cidade:"Goiânia",estado:"GO",contato:"Roberto Alves",telefone:"(62) 95432-1098",email:"roberto@varejoco.com",data_proposta:"2025-01-08",valor:19000,status:"lost",servico:"Laudo RGB e LiDAR",pdf_link:"",observacoes:"Optou por concorrente."}},
-    {type:"Feature",geometry:{type:"Point",coordinates:[-51.3889,-22.1256]},properties:{empresa:"Arias Cartografia",cidade:"Presidente Prudente",estado:"SP",contato:"Luiza Ferreira",telefone:"(18) 98815-3529",email:"luiza@arias.com.br",data_proposta:"2025-02-20",valor:38000,status:"won",servico:"Assessoria + Laudo LiDAR",pdf_link:"",observacoes:"Reunião marcada."}},
+    {type:"Feature",geometry:{type:"Point",coordinates:[-47.8103,-21.1775]},properties:{fid:1,empresa:"Fazenda São Paulo",CPF_CNPJ:"12.345.678/0001-90",cidade:"Ribeirão Preto",estado:"SP",contato:"Carlos Mendes",telefone:"(16) 99234-5678",email:"carlos@fazendasp.com.br",data_proposta:"2024-11-10",valor:45000,status:"won",servico:"Laudo RGB",pdf_link:"",observacoes:"Cliente interessado em expansão."}},
+    {type:"Feature",geometry:{type:"Point",coordinates:[-34.877,-8.0476]},properties:{fid:2,empresa:"Tech Recife",CPF_CNPJ:"98.765.432/0001-11",cidade:"Recife",estado:"PE",contato:"Ana Lima",telefone:"(81) 98765-4321",email:"ana@techrecife.com",data_proposta:"2024-12-05",valor:28000,status:"sent",servico:"Laudo LiDAR",pdf_link:"",observacoes:"Aguardando retorno."}},
+    {type:"Feature",geometry:{type:"Point",coordinates:[-51.2177,-30.0346]},properties:{fid:3,empresa:"Construções Sul",CPF_CNPJ:"11.222.333/0001-44",cidade:"Porto Alegre",estado:"RS",contato:"Marcos Oliveira",telefone:"(51) 97654-3210",email:"marcos@construcaosul.com",data_proposta:"2024-10-22",valor:92000,status:"won",servico:"Georreferenciamento",pdf_link:"",observacoes:"Contrato assinado."}},
+    {type:"Feature",geometry:{type:"Point",coordinates:[-38.5014,-12.9714]},properties:{fid:4,empresa:"Saúde Nordeste",CPF_CNPJ:"55.666.777/0001-88",cidade:"Salvador",estado:"BA",contato:"Fernanda Costa",telefone:"(71) 96543-2109",email:"fcosta@saudene.com",data_proposta:"2024-09-15",valor:67000,status:"neg",servico:"Assessoria + Laudo LiDAR",pdf_link:"",observacoes:"Negociando valor."}},
+    {type:"Feature",geometry:{type:"Point",coordinates:[-49.2648,-16.6869]},properties:{fid:5,empresa:"Agro Centro-Oeste",CPF_CNPJ:"44.555.666/0001-77",cidade:"Goiânia",estado:"GO",contato:"Roberto Alves",telefone:"(62) 95432-1098",email:"roberto@agrocentrooeste.com",data_proposta:"2025-01-08",valor:19000,status:"lost",servico:"Topografia",pdf_link:"",observacoes:"Optou por concorrente."}},
+    {type:"Feature",geometry:{type:"Point",coordinates:[-51.3889,-22.1256]},properties:{fid:6,empresa:"Arias Demo",CPF_CNPJ:"33.444.555/0001-66",cidade:"Presidente Prudente",estado:"SP",contato:"Luiza Ferreira",telefone:"(18) 98815-3529",email:"luiza@arias.com.br",data_proposta:"2025-02-20",valor:38000,status:"won",servico:"Topografia",pdf_link:"",observacoes:"Reunião marcada."}},
   ]};
 }
 </script>
